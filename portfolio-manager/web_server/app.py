@@ -12,6 +12,7 @@ from models.portfolio import Portfolio, Holding
 from controllers.portfolio_controller import (
     PortfolioController, 
     PortfolioCreate, 
+    PortfolioUpdate,
     HoldingCreate, 
     HoldingUpdate
 )
@@ -121,6 +122,48 @@ async def view_portfolio(request: Request, portfolio_id: int, db: Session = Depe
         "holdings": holdings,
         "summary": summary
     })
+
+
+@app.get("/portfolios/{portfolio_id}/edit", response_class=HTMLResponse)
+async def edit_portfolio_form(request: Request, portfolio_id: int, db: Session = Depends(get_db)):
+    """Display form to edit a portfolio."""
+    controller = PortfolioController(db)
+    portfolio = controller.get_portfolio(portfolio_id)
+    
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    
+    return templates.TemplateResponse("portfolios/edit.html", {
+        "request": request,
+        "portfolio": portfolio
+    })
+
+
+@app.post("/portfolios/{portfolio_id}/edit", response_class=HTMLResponse)
+async def update_portfolio_web(
+    request: Request,
+    portfolio_id: int,
+    name: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Update a portfolio via web form."""
+    controller = PortfolioController(db)
+    portfolio = controller.get_portfolio(portfolio_id)
+    
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    
+    try:
+        portfolio_data = PortfolioUpdate(name=name)
+        updated_portfolio = controller.update_portfolio(portfolio_id, portfolio_data)
+        return RedirectResponse(url=f"/portfolios/{portfolio_id}?renamed={name}", status_code=303)
+    except ValueError as e:
+        return templates.TemplateResponse("portfolios/edit.html", {
+            "request": request,
+            "portfolio": portfolio,
+            "error": str(e),
+            "name": name
+        })
 
 
 @app.post("/portfolios/{portfolio_id}/delete", response_class=HTMLResponse)

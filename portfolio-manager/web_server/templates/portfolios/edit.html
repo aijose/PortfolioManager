@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Portfolio - {{ portfolio.name }} - Portfolio Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="bi bi-pencil"></i> Edit Portfolio
+                </h4>
+                <small class="text-muted">Rename your portfolio</small>
+            </div>
+            
+            <div class="card-body">
+                {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i> {{ error }}
+                    </div>
+                {% endif %}
+                
+                <form method="post" action="/portfolios/{{ portfolio.id }}/edit">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Portfolio Name</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="name" 
+                               name="name" 
+                               value="{{ name or portfolio.name }}"
+                               placeholder="e.g., My Retirement Portfolio"
+                               required 
+                               maxlength="100"
+                               autofocus>
+                        <div class="form-text">
+                            Choose a descriptive name for your portfolio (max 100 characters)
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="/portfolios/{{ portfolio.id }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Help Card -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-question-circle"></i> About Portfolio Names
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li><strong>Descriptive:</strong> Use names that clearly identify your portfolio's purpose</li>
+                    <li><strong>Unique:</strong> Each portfolio must have a different name</li>
+                    <li><strong>Examples:</strong> "Retirement 401k", "Emergency Fund", "Growth Portfolio"</li>
+                    <li><strong>Length:</strong> Maximum 100 characters allowed</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Portfolio Info -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-info-circle"></i> Portfolio Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <strong>Created:</strong><br>
+                        <small class="text-muted">{{ portfolio.created_date.strftime('%Y-%m-%d %H:%M') }}</small>
+                    </div>
+                    <div class="col-sm-6">
+                        <strong>Last Modified:</strong><br>
+                        <small class="text-muted">{{ portfolio.modified_date.strftime('%Y-%m-%d %H:%M') }}</small>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <strong>Holdings:</strong>
+                    <small class="text-muted">{{ portfolio.holdings|length }} holdings</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const name = document.getElementById('name').value.trim();
+    
+    if (!name || name.length === 0) {
+        alert('Please enter a portfolio name');
+        e.preventDefault();
+        return;
+    }
+    
+    if (name.length > 100) {
+        alert('Portfolio name must be 100 characters or less');
+        e.preventDefault();
+        return;
+    }
+});
+
+// Character counter
+document.getElementById('name').addEventListener('input', function(e) {
+    const maxLength = 100;
+    const currentLength = e.target.value.length;
+    const remaining = maxLength - currentLength;
+    
+    // Update or create character counter
+    let counter = document.getElementById('char-counter');
+    if (!counter) {
+        counter = document.createElement('small');
+        counter.id = 'char-counter';
+        counter.className = 'form-text';
+        e.target.parentNode.appendChild(counter);
+    }
+    
+    counter.textContent = `${currentLength}/${maxLength} characters`;
+    
+    if (remaining < 20) {
+        counter.className = 'form-text text-warning';
+    } else {
+        counter.className = 'form-text text-muted';
+    }
+});
+
+// Initialize character counter
+document.getElementById('name').dispatchEvent(new Event('input'));
+</script>
+{% endblock %}
