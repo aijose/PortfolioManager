@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from models.database import get_db, create_tables
-from models.portfolio import Portfolio, Holding
+from models.portfolio import Portfolio, Holding, Watchlist, WatchedItem
 from controllers.portfolio_controller import (
     PortfolioController, 
     PortfolioCreate, 
@@ -19,9 +19,17 @@ from controllers.portfolio_controller import (
 from utils.csv_parser import CSVPortfolioParser
 from utils.validators import validate_file_extension
 from controllers.rebalancing_controller import RebalancingController
+from controllers.watchlist_controller import (
+    WatchlistController,
+    WatchlistCreate,
+    WatchlistUpdate,
+    WatchedItemCreate,
+    WatchedItemUpdate
+)
 from web_server.routes.portfolios import router as portfolios_router
 from web_server.routes.stock_data import router as stock_data_router
 from web_server.routes.rebalancing import router as rebalancing_router
+from web_server.routes.watchlists import router as watchlists_router
 
 # Create FastAPI app
 app = FastAPI(
@@ -34,6 +42,7 @@ app = FastAPI(
 app.include_router(portfolios_router)
 app.include_router(stock_data_router)
 app.include_router(rebalancing_router)
+app.include_router(watchlists_router)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="web_server/static"), name="static")
@@ -489,6 +498,289 @@ async def view_rebalancing_analysis(
             "cost_percentage": 0,
             "estimated_final_value": 0
         })
+
+
+# Watchlist routes
+@app.get("/watchlists", response_class=HTMLResponse)
+async def list_watchlists(request: Request, db: Session = Depends(get_db)):
+    """Display list of all watchlists."""
+    controller = WatchlistController(db)
+    watchlists = controller.get_watchlists()
+    
+    # Calculate summary for each watchlist
+    watchlist_summaries = []
+    for watchlist in watchlists:
+        summary = controller.get_watchlist_summary(watchlist.id)
+        watchlist_summaries.append({
+            "watchlist": watchlist,
+            "summary": summary
+        })
+    
+    return templates.TemplateResponse("watchlists/list.html", {
+        "request": request,
+        "watchlist_summaries": watchlist_summaries
+    })
+
+
+@app.get("/watchlists/new", response_class=HTMLResponse)
+async def new_watchlist_form(request: Request):
+    """Display form to create a new watchlist."""
+    return templates.TemplateResponse("watchlists/new.html", {
+        "request": request
+    })
+
+
+@app.post("/watchlists", response_class=HTMLResponse)
+async def create_watchlist_web(
+    request: Request,
+    name: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Create a new watchlist."""
+    controller = WatchlistController(db)
+    
+    try:
+        watchlist_data = WatchlistCreate(name=name)
+        watchlist = controller.create_watchlist(watchlist_data)
+        return RedirectResponse(url=f"/watchlists/{watchlist.id}", status_code=303)
+    except ValueError as e:
+        return templates.TemplateResponse("watchlists/new.html", {
+            "request": request,
+            "error": str(e),
+            "name": name
+        })
+
+
+@app.get("/watchlists/{watchlist_id}", response_class=HTMLResponse)
+async def view_watchlist(request: Request, watchlist_id: int, db: Session = Depends(get_db)):
+    """Display watchlist details."""
+    controller = WatchlistController(db)
+    watchlist = controller.get_watchlist(watchlist_id)
+    
+    if not watchlist:
+        raise HTTPException(status_code=404, detail="Watchlist not found")
+    
+    watched_items = controller.get_watchlist_items_with_details(watchlist_id)
+    summary = controller.get_watchlist_summary(watchlist_id)
+    
+    return templates.TemplateResponse("watchlists/detail.html", {
+        "request": request,
+        "watchlist": watchlist,
+        "watched_items": watched_items,
+        "summary": summary
+    })
+
+
+@app.get("/watchlists/{watchlist_id}/edit", response_class=HTMLResponse)
+async def edit_watchlist_form(request: Request, watchlist_id: int, db: Session = Depends(get_db)):
+    """Display form to edit a watchlist."""
+    controller = WatchlistController(db)
+    watchlist = controller.get_watchlist(watchlist_id)
+    
+    if not watchlist:
+        raise HTTPException(status_code=404, detail="Watchlist not found")
+    
+    return templates.TemplateResponse("watchlists/edit.html", {
+        "request": request,
+        "watchlist": watchlist
+    })
+
+
+@app.post("/watchlists/{watchlist_id}/edit", response_class=HTMLResponse)
+async def update_watchlist_web(
+    request: Request,
+    watchlist_id: int,
+    name: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Update a watchlist via web form."""
+    controller = WatchlistController(db)
+    watchlist = controller.get_watchlist(watchlist_id)
+    
+    if not watchlist:
+        raise HTTPException(status_code=404, detail="Watchlist not found")
+    
+    try:
+        watchlist_data = WatchlistUpdate(name=name)
+        updated_watchlist = controller.update_watchlist(watchlist_id, watchlist_data)
+        return RedirectResponse(url=f"/watchlists/{watchlist_id}?renamed={name}", status_code=303)
+    except ValueError as e:
+        return templates.TemplateResponse("watchlists/edit.html", {
+            "request": request,
+            "watchlist": watchlist,
+            "error": str(e),
+            "name": name
+        })
+
+
+@app.post("/watchlists/{watchlist_id}/delete", response_class=HTMLResponse)
+async def delete_watchlist_web(watchlist_id: int, db: Session = Depends(get_db)):
+    """Delete a watchlist."""
+    controller = WatchlistController(db)
+    success = controller.delete_watchlist(watchlist_id)
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Watchlist not found")
+    
+    return RedirectResponse(url="/watchlists", status_code=303)
+
+
+@app.get("/watchlists/{watchlist_id}/items/new", response_class=HTMLResponse)
+async def new_watched_item_form(request: Request, watchlist_id: int, db: Session = Depends(get_db)):
+    """Display form to add a new watched item."""
+    controller = WatchlistController(db)
+    watchlist = controller.get_watchlist(watchlist_id)
+    
+    if not watchlist:
+        raise HTTPException(status_code=404, detail="Watchlist not found")
+    
+    return templates.TemplateResponse("watchlists/item_form.html", {
+        "request": request,
+        "watchlist": watchlist,
+        "action": "add"
+    })
+
+
+@app.post("/watchlists/{watchlist_id}/items", response_class=HTMLResponse)
+async def create_watched_item_web(
+    request: Request,
+    watchlist_id: int,
+    symbol: str = Form(...),
+    notes: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    """Create a new watched item via web form."""
+    controller = WatchlistController(db)
+    watchlist = controller.get_watchlist(watchlist_id)
+    
+    if not watchlist:
+        raise HTTPException(status_code=404, detail="Watchlist not found")
+    
+    try:
+        watched_item_data = WatchedItemCreate(
+            symbol=symbol,
+            notes=notes if notes else None
+        )
+        controller.add_watched_item(watchlist_id, watched_item_data)
+        return RedirectResponse(url=f"/watchlists/{watchlist_id}?added={symbol}", status_code=303)
+    except ValueError as e:
+        return templates.TemplateResponse("watchlists/item_form.html", {
+            "request": request,
+            "watchlist": watchlist,
+            "action": "add",
+            "error": str(e),
+            "symbol": symbol,
+            "notes": notes
+        })
+
+
+@app.get("/watchlists/{watchlist_id}/items/{symbol}/edit", response_class=HTMLResponse)
+async def edit_watched_item_form(request: Request, watchlist_id: int, symbol: str, db: Session = Depends(get_db)):
+    """Display form to edit a watched item."""
+    controller = WatchlistController(db)
+    watchlist = controller.get_watchlist(watchlist_id)
+    
+    if not watchlist:
+        raise HTTPException(status_code=404, detail="Watchlist not found")
+    
+    watched_items = controller.get_watchlist_items(watchlist_id)
+    watched_item = next((item for item in watched_items if item.symbol == symbol), None)
+    
+    if not watched_item:
+        raise HTTPException(status_code=404, detail="Watched item not found")
+    
+    return templates.TemplateResponse("watchlists/item_form.html", {
+        "request": request,
+        "watchlist": watchlist,
+        "action": "edit",
+        "symbol": watched_item.symbol,
+        "notes": watched_item.notes or ""
+    })
+
+
+@app.post("/watchlists/{watchlist_id}/items/{symbol}/edit", response_class=HTMLResponse)
+async def update_watched_item_web(
+    request: Request,
+    watchlist_id: int,
+    symbol: str,
+    notes: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    """Update a watched item via web form."""
+    controller = WatchlistController(db)
+    watchlist = controller.get_watchlist(watchlist_id)
+    
+    if not watchlist:
+        raise HTTPException(status_code=404, detail="Watchlist not found")
+    
+    try:
+        watched_item_data = WatchedItemUpdate(
+            notes=notes if notes else None
+        )
+        updated_watched_item = controller.update_watched_item(watchlist_id, symbol, watched_item_data)
+        
+        if not updated_watched_item:
+            raise HTTPException(status_code=404, detail="Watched item not found")
+        
+        return RedirectResponse(url=f"/watchlists/{watchlist_id}?updated={symbol}", status_code=303)
+    except ValueError as e:
+        return templates.TemplateResponse("watchlists/item_form.html", {
+            "request": request,
+            "watchlist": watchlist,
+            "action": "edit",
+            "error": str(e),
+            "symbol": symbol,
+            "notes": notes
+        })
+
+
+@app.post("/watchlists/{watchlist_id}/items/{symbol}/delete", response_class=HTMLResponse)
+async def delete_watched_item_web(watchlist_id: int, symbol: str, db: Session = Depends(get_db)):
+    """Delete a watched item via web form."""
+    controller = WatchlistController(db)
+    success = controller.delete_watched_item(watchlist_id, symbol)
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Watched item not found")
+    
+    return RedirectResponse(url=f"/watchlists/{watchlist_id}?deleted={symbol}", status_code=303)
+
+
+@app.post("/watchlists/{watchlist_id}/refresh-prices", response_class=HTMLResponse)
+async def refresh_watchlist_prices_web(watchlist_id: int, db: Session = Depends(get_db)):
+    """Refresh all watchlist prices via web interface."""
+    controller = WatchlistController(db)
+    
+    watchlist = controller.get_watchlist(watchlist_id)
+    if not watchlist:
+        raise HTTPException(status_code=404, detail="Watchlist not found")
+    
+    result = controller.refresh_watchlist_prices(watchlist_id)
+    
+    if result["success"]:
+        message = f"refreshed={result['updated_count']}&failed={result['failed_count']}"
+        if result["failed_symbols"]:
+            failed_symbols = ",".join(result["failed_symbols"])
+            message += f"&failed_symbols={failed_symbols}"
+    else:
+        message = f"error={result.get('error', 'Failed to refresh prices')}"
+    
+    return RedirectResponse(url=f"/watchlists/{watchlist_id}?{message}", status_code=303)
+
+
+@app.post("/watchlists/{watchlist_id}/items/{symbol}/refresh-price", response_class=HTMLResponse)
+async def refresh_single_watched_item_price_web(watchlist_id: int, symbol: str, db: Session = Depends(get_db)):
+    """Refresh single watched item price via web interface."""
+    controller = WatchlistController(db)
+    
+    result = controller.update_single_item_price(watchlist_id, symbol)
+    
+    if result["success"]:
+        message = f"price_updated={symbol}&new_price={result['price']:.2f}"
+    else:
+        message = f"price_error={result.get('error', 'Failed to update price')}"
+    
+    return RedirectResponse(url=f"/watchlists/{watchlist_id}?{message}", status_code=303)
 
 
 # API endpoints for AJAX requests

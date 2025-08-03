@@ -1,4 +1,4 @@
-"""Portfolio and Holding database models."""
+"""Portfolio, Holding, Watchlist, and WatchedItem database models."""
 
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
@@ -65,3 +65,44 @@ class Holding(Base):
             return 0.0
         
         return (self.current_value / total_value) * 100
+
+
+class Watchlist(Base):
+    """Watchlist model representing a collection of stocks being tracked."""
+    
+    __tablename__ = "watchlists"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, index=True)
+    created_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    modified_date = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationship to watched items
+    watched_items = relationship("WatchedItem", back_populates="watchlist", cascade="all, delete-orphan")
+    
+    def __repr__(self):
+        return f"<Watchlist(id={self.id}, name='{self.name}')>"
+
+
+class WatchedItem(Base):
+    """WatchedItem model representing a stock being tracked in a watchlist."""
+    
+    __tablename__ = "watched_items"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    watchlist_id = Column(Integer, ForeignKey("watchlists.id"), nullable=False)
+    symbol = Column(String(10), nullable=False, index=True)
+    notes = Column(String(500), nullable=True)  # Optional notes about why tracking this stock
+    last_price = Column(Float, nullable=True)  # Last fetched price
+    added_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relationship to watchlist
+    watchlist = relationship("Watchlist", back_populates="watched_items")
+    
+    def __repr__(self):
+        return f"<WatchedItem(symbol='{self.symbol}', price=${self.last_price or 0:.2f})>"
+    
+    @property
+    def current_value(self):
+        """Get current price for display purposes."""
+        return self.last_price or 0.0

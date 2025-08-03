@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}New Watchlist - Portfolio Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="bi bi-eye"></i> Create New Watchlist</h4>
+            </div>
+            <div class="card-body">
+                {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i> {{ error }}
+                    </div>
+                {% endif %}
+
+                <form method="post" action="/watchlists">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Watchlist Name</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="name" 
+                               name="name" 
+                               value="{{ name or '' }}" 
+                               required 
+                               maxlength="100"
+                               placeholder="e.g., Tech Stocks, Dividend Stocks, Growth Opportunities">
+                        <div class="form-text">Give your watchlist a descriptive name (max 100 characters)</div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="/watchlists" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-plus-circle"></i> Create Watchlist
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
