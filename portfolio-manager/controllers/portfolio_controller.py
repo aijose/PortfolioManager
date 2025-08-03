@@ -53,6 +53,24 @@ class HoldingCreate(BaseModel):
         return v
 
 
+class HoldingUpdate(BaseModel):
+    """Schema for updating a holding."""
+    shares: float
+    target_allocation: float
+    
+    @validator('shares')
+    def shares_must_be_positive(cls, v):
+        if v < 0:
+            raise ValueError('Shares must be non-negative')
+        return v
+    
+    @validator('target_allocation')
+    def allocation_must_be_valid(cls, v):
+        if v <= 0 or v > 100:
+            raise ValueError('Target allocation must be between 0.01 and 100')
+        return v
+
+
 class PortfolioController:
     """Controller for portfolio operations."""
     
@@ -143,6 +161,83 @@ class PortfolioController:
         return self.db.query(Holding).filter(
             Holding.portfolio_id == portfolio_id
         ).order_by(Holding.symbol).all()
+    
+    def update_holding(self, portfolio_id: int, symbol: str, holding: HoldingUpdate) -> Optional[Holding]:
+        """Update an existing holding."""
+        db_holding = self.db.query(Holding).filter(
+            Holding.portfolio_id == portfolio_id,
+            Holding.symbol == symbol
+        ).first()
+        
+        if not db_holding:
+            return None
+        
+        db_holding.shares = holding.shares
+        db_holding.target_allocation = holding.target_allocation
+        self.db.commit()
+        self.db.refresh(db_holding)
+        return db_holding
+    
+    def delete_holding(self, portfolio_id: int, symbol: str) -> bool:
+        """Delete a holding from a portfolio."""
+        db_holding = self.db.query(Holding).filter(
+            Holding.portfolio_id == portfolio_id,
+            Holding.symbol == symbol
+        ).first()
+        
+        if not db_holding:
+            return False
+        
+        self.db.delete(db_holding)
+        self.db.commit()
+        return True
+    
+    def import_holdings_from_csv(self, portfolio_id: int, holdings_data: List) -> dict:
+        """
+        Import holdings from CSV data, replacing existing holdings.
+        
+        Args:
+            portfolio_id: ID of the portfolio
+            holdings_data: List of CSVHoldingData objects
+            
+        Returns:
+            Dictionary with import results
+        """
+        portfolio = self.get_portfolio(portfolio_id)
+        if not portfolio:
+            raise ValueError("Portfolio not found")
+        
+        # Clear existing holdings
+        self.db.query(Holding).filter(Holding.portfolio_id == portfolio_id).delete()
+        
+        # Add new holdings
+        imported_count = 0
+        errors = []
+        
+        for holding_data in holdings_data:
+            try:
+                db_holding = Holding(
+                    portfolio_id=portfolio_id,
+                    symbol=holding_data.symbol,
+                    shares=holding_data.shares,
+                    target_allocation=holding_data.allocation
+                )
+                self.db.add(db_holding)
+                imported_count += 1
+            except Exception as e:
+                errors.append(f"Failed to import {holding_data.symbol}: {str(e)}")
+        
+        try:
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            raise ValueError(f"Failed to save holdings: {str(e)}")
+        
+        return {
+            "imported_count": imported_count,
+            "errors": errors,
+            "success": len(errors) == 0
+        }
     
     def calculate_portfolio_summary(self, portfolio_id: int) -> dict:
         """Calculate portfolio summary statistics."""

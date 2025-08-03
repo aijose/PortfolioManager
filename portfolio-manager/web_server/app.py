@@ -1,15 +1,23 @@
 """FastAPI application for Portfolio Manager."""
 
-from fastapi import FastAPI, Request, Depends, HTTPException, Form
+from fastapi import FastAPI, Request, Depends, HTTPException, Form, UploadFile, File
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from typing import List
 
 from models.database import get_db, create_tables
-from models.portfolio import Portfolio
-from controllers.portfolio_controller import PortfolioController, PortfolioCreate
+from models.portfolio import Portfolio, Holding
+from controllers.portfolio_controller import (
+    PortfolioController, 
+    PortfolioCreate, 
+    HoldingCreate, 
+    HoldingUpdate
+)
+from utils.csv_parser import CSVPortfolioParser
+from utils.validators import validate_file_extension
+from web_server.routes.portfolios import router as portfolios_router
 
 # Create FastAPI app
 app = FastAPI(
@@ -17,6 +25,9 @@ app = FastAPI(
     description="A web-based stock portfolio management and rebalancing application",
     version="0.1.0"
 )
+
+# Include API routers
+app.include_router(portfolios_router)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="web_server/static"), name="static")
@@ -117,6 +128,222 @@ async def delete_portfolio(portfolio_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Portfolio not found")
     
     return RedirectResponse(url="/portfolios", status_code=303)
+
+
+@app.get("/portfolios/{portfolio_id}/import", response_class=HTMLResponse)
+async def import_csv_form(request: Request, portfolio_id: int, db: Session = Depends(get_db)):
+    """Display CSV import form."""
+    controller = PortfolioController(db)
+    portfolio = controller.get_portfolio(portfolio_id)
+    
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    
+    # Generate sample CSV for display
+    parser = CSVPortfolioParser()
+    sample_csv = parser.generate_sample_csv()
+    
+    return templates.TemplateResponse("portfolios/import.html", {
+        "request": request,
+        "portfolio": portfolio,
+        "sample_csv": sample_csv
+    })
+
+
+@app.post("/portfolios/{portfolio_id}/import", response_class=HTMLResponse)
+async def import_csv_upload(
+    request: Request,
+    portfolio_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """Handle CSV file upload and import."""
+    controller = PortfolioController(db)
+    portfolio = controller.get_portfolio(portfolio_id)
+    
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    
+    errors = []
+    warnings = []
+    success = False
+    imported_count = 0
+    
+    try:
+        # Validate file type
+        if not validate_file_extension(file.filename, ['.csv']):
+            errors.append("Only CSV files are allowed")
+        else:
+            # Read and process file
+            content = await file.read()
+            content_str = content.decode('utf-8')
+            
+            parser = CSVPortfolioParser()
+            
+            # Validate file size
+            if not parser.validate_file_size(content_str):
+                errors.append("File size exceeds 1MB limit")
+            else:
+                # Parse CSV
+                holdings_data, parse_errors, parse_warnings = parser.parse_csv_content(content_str)
+                errors.extend(parse_errors)
+                warnings.extend(parse_warnings)
+                
+                if not errors:
+                    # Import data
+                    import_result = controller.import_holdings_from_csv(portfolio_id, holdings_data)
+                    success = import_result["success"]
+                    imported_count = import_result["imported_count"]
+                    errors.extend(import_result["errors"])
+    
+    except UnicodeDecodeError:
+        errors.append("File is not a valid CSV file")
+    except Exception as e:
+        errors.append(f"Failed to process file: {str(e)}")
+    
+    if success and not errors:
+        return RedirectResponse(url=f"/portfolios/{portfolio_id}?imported={imported_count}", status_code=303)
+    else:
+        # Generate sample CSV for redisplay
+        parser = CSVPortfolioParser()
+        sample_csv = parser.generate_sample_csv()
+        
+        return templates.TemplateResponse("portfolios/import.html", {
+            "request": request,
+            "portfolio": portfolio,
+            "sample_csv": sample_csv,
+            "errors": errors,
+            "warnings": warnings,
+            "filename": file.filename
+        })
+
+
+@app.get("/portfolios/{portfolio_id}/holdings/new", response_class=HTMLResponse)
+async def new_holding_form(request: Request, portfolio_id: int, db: Session = Depends(get_db)):
+    """Display form to add a new holding."""
+    controller = PortfolioController(db)
+    portfolio = controller.get_portfolio(portfolio_id)
+    
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    
+    return templates.TemplateResponse("portfolios/holding_form.html", {
+        "request": request,
+        "portfolio": portfolio,
+        "action": "add"
+    })
+
+
+@app.post("/portfolios/{portfolio_id}/holdings", response_class=HTMLResponse)
+async def create_holding_web(
+    request: Request,
+    portfolio_id: int,
+    symbol: str = Form(...),
+    shares: float = Form(...),
+    target_allocation: float = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Create a new holding via web form."""
+    controller = PortfolioController(db)
+    portfolio = controller.get_portfolio(portfolio_id)
+    
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    
+    try:
+        holding_data = HoldingCreate(
+            symbol=symbol,
+            shares=shares,
+            target_allocation=target_allocation
+        )
+        controller.add_holding(portfolio_id, holding_data)
+        return RedirectResponse(url=f"/portfolios/{portfolio_id}?added={symbol}", status_code=303)
+    except ValueError as e:
+        return templates.TemplateResponse("portfolios/holding_form.html", {
+            "request": request,
+            "portfolio": portfolio,
+            "action": "add",
+            "error": str(e),
+            "symbol": symbol,
+            "shares": shares,
+            "target_allocation": target_allocation
+        })
+
+
+@app.get("/portfolios/{portfolio_id}/holdings/{symbol}/edit", response_class=HTMLResponse)
+async def edit_holding_form(request: Request, portfolio_id: int, symbol: str, db: Session = Depends(get_db)):
+    """Display form to edit a holding."""
+    controller = PortfolioController(db)
+    portfolio = controller.get_portfolio(portfolio_id)
+    
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    
+    holdings = controller.get_portfolio_holdings(portfolio_id)
+    holding = next((h for h in holdings if h.symbol == symbol), None)
+    
+    if not holding:
+        raise HTTPException(status_code=404, detail="Holding not found")
+    
+    return templates.TemplateResponse("portfolios/holding_form.html", {
+        "request": request,
+        "portfolio": portfolio,
+        "action": "edit",
+        "symbol": holding.symbol,
+        "shares": holding.shares,
+        "target_allocation": holding.target_allocation
+    })
+
+
+@app.post("/portfolios/{portfolio_id}/holdings/{symbol}/edit", response_class=HTMLResponse)
+async def update_holding_web(
+    request: Request,
+    portfolio_id: int,
+    symbol: str,
+    shares: float = Form(...),
+    target_allocation: float = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Update a holding via web form."""
+    controller = PortfolioController(db)
+    portfolio = controller.get_portfolio(portfolio_id)
+    
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    
+    try:
+        holding_data = HoldingUpdate(
+            shares=shares,
+            target_allocation=target_allocation
+        )
+        updated_holding = controller.update_holding(portfolio_id, symbol, holding_data)
+        
+        if not updated_holding:
+            raise HTTPException(status_code=404, detail="Holding not found")
+        
+        return RedirectResponse(url=f"/portfolios/{portfolio_id}?updated={symbol}", status_code=303)
+    except ValueError as e:
+        return templates.TemplateResponse("portfolios/holding_form.html", {
+            "request": request,
+            "portfolio": portfolio,
+            "action": "edit",
+            "error": str(e),
+            "symbol": symbol,
+            "shares": shares,
+            "target_allocation": target_allocation
+        })
+
+
+@app.post("/portfolios/{portfolio_id}/holdings/{symbol}/delete", response_class=HTMLResponse)
+async def delete_holding_web(portfolio_id: int, symbol: str, db: Session = Depends(get_db)):
+    """Delete a holding via web form."""
+    controller = PortfolioController(db)
+    success = controller.delete_holding(portfolio_id, symbol)
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Holding not found")
+    
+    return RedirectResponse(url=f"/portfolios/{portfolio_id}?deleted={symbol}", status_code=303)
 
 
 # API endpoints for AJAX requests

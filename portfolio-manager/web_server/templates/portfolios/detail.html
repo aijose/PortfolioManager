@@ -3,6 +3,39 @@
 {% block title %}{{ portfolio.name }} - Portfolio Manager{% endblock %}
 
 {% block content %}
+<!-- Success/Info Messages -->
+{% if request.query_params.get('imported') %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle"></i>
+        Successfully imported {{ request.query_params.get('imported') }} holdings from CSV file.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+{% endif %}
+
+{% if request.query_params.get('added') %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle"></i>
+        Successfully added holding for {{ request.query_params.get('added') }}.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+{% endif %}
+
+{% if request.query_params.get('updated') %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle"></i>
+        Successfully updated holding for {{ request.query_params.get('updated') }}.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+{% endif %}
+
+{% if request.query_params.get('deleted') %}
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="bi bi-info-circle"></i>
+        Successfully deleted holding for {{ request.query_params.get('deleted') }}.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+{% endif %}
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1>{{ portfolio.name }}</h1>
@@ -79,9 +112,9 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Holdings</h5>
-        <button class="btn btn-primary btn-sm" disabled>
+        <a href="/portfolios/{{ portfolio.id }}/holdings/new" class="btn btn-primary btn-sm">
             <i class="bi bi-plus-circle"></i> Add Holding
-        </button>
+        </a>
     </div>
     
     <div class="card-body">
@@ -129,12 +162,23 @@
                                     {% endif %}
                                 </td>
                                 <td class="text-end">
-                                    <button class="btn btn-outline-secondary btn-sm" disabled>
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button class="btn btn-outline-danger btn-sm" disabled>
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                                    <div class="btn-group" role="group">
+                                        <a href="/portfolios/{{ portfolio.id }}/holdings/{{ holding.symbol }}/edit" 
+                                           class="btn btn-outline-secondary btn-sm" 
+                                           title="Edit holding">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form method="post" 
+                                              action="/portfolios/{{ portfolio.id }}/holdings/{{ holding.symbol }}/delete" 
+                                              class="d-inline"
+                                              onsubmit="return confirm('Are you sure you want to delete {{ holding.symbol }}?')">
+                                            <button type="submit" 
+                                                    class="btn btn-outline-danger btn-sm" 
+                                                    title="Delete holding">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         {% endfor %}
@@ -146,9 +190,9 @@
                 <i class="bi bi-graph-up display-1 text-muted"></i>
                 <h5 class="mt-3 text-muted">No Holdings Yet</h5>
                 <p class="text-muted">Add your first stock holding to get started.</p>
-                <button class="btn btn-primary" disabled>
+                <a href="/portfolios/{{ portfolio.id }}/holdings/new" class="btn btn-primary">
                     <i class="bi bi-plus-circle"></i> Add First Holding
-                </button>
+                </a>
             </div>
         {% endif %}
     </div>
@@ -162,9 +206,9 @@
                 <div class="card-body text-center">
                     <h6 class="card-title">Import from CSV</h6>
                     <p class="card-text text-muted">Upload a CSV file with your holdings</p>
-                    <button class="btn btn-outline-primary" disabled>
+                    <a href="/portfolios/{{ portfolio.id }}/import" class="btn btn-outline-primary">
                         <i class="bi bi-upload"></i> Import CSV
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>
@@ -177,6 +221,7 @@
                     <button class="btn btn-outline-success" disabled>
                         <i class="bi bi-arrow-repeat"></i> Analyze Rebalancing
                     </button>
+                    <small class="d-block text-muted mt-1">Coming in Sprint 4</small>
                 </div>
             </div>
         </div>

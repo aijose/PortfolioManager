@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Import CSV - {{ portfolio.name }} - Portfolio Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Import Holdings from CSV</h1>
+            <a href="/portfolios/{{ portfolio.id }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Portfolio
+            </a>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Portfolio: {{ portfolio.name }}</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Upload a CSV file with your stock holdings. This will replace all existing holdings in this portfolio.
+                </p>
+            </div>
+        </div>
+
+        <!-- Error/Warning Messages -->
+        {% if errors %}
+            <div class="alert alert-danger" role="alert">
+                <h6><i class="bi bi-exclamation-triangle"></i> Import Failed</h6>
+                <ul class="mb-0">
+                    {% for error in errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        {% if warnings %}
+            <div class="alert alert-warning" role="alert">
+                <h6><i class="bi bi-exclamation-triangle"></i> Warnings</h6>
+                <ul class="mb-0">
+                    {% for warning in warnings %}
+                        <li>{{ warning }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <!-- Upload Form -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-upload"></i> Upload CSV File
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" action="/portfolios/{{ portfolio.id }}/import">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">CSV File</label>
+                        <input type="file" 
+                               class="form-control" 
+                               id="file" 
+                               name="file" 
+                               accept=".csv"
+                               required>
+                        <div class="form-text">
+                            Maximum file size: 1MB. Only CSV files are accepted.
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="/portfolios/{{ portfolio.id }}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload"></i> Import Holdings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- CSV Format Guide -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle"></i> CSV Format Requirements
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Your CSV file must contain exactly these columns (case-insensitive):</p>
+                
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Column</th>
+                                <th>Description</th>
+                                <th>Requirements</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>Symbol</code></td>
+                                <td>Stock ticker symbol</td>
+                                <td>1-10 characters, letters and numbers only</td>
+                            </tr>
+                            <tr>
+                                <td><code>Shares</code></td>
+                                <td>Number of shares held</td>
+                                <td>Non-negative number (can be 0)</td>
+                            </tr>
+                            <tr>
+                                <td><code>Allocation</code></td>
+                                <td>Target allocation percentage</td>
+                                <td>0.01 to 100, must sum to 100% across all holdings</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="alert alert-info mt-3" role="alert">
+                    <h6><i class="bi bi-lightbulb"></i> Tips</h6>
+                    <ul class="mb-0">
+                        <li>Column names are case-insensitive (e.g., "symbol", "Symbol", "SYMBOL" all work)</li>
+                        <li>Empty rows are automatically skipped</li>
+                        <li>Duplicate symbols in the same file are not allowed</li>
+                        <li>Total allocation percentages should sum to exactly 100%</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sample CSV -->
+        <div class="card mt-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-earmark-text"></i> Sample CSV File
+                </h5>
+                <button class="btn btn-outline-secondary btn-sm" onclick="downloadSampleCSV()">
+                    <i class="bi bi-download"></i> Download Sample
+                </button>
+            </div>
+            <div class="card-body">
+                <pre class="bg-light p-3 border rounded"><code>{{ sample_csv }}</code></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function downloadSampleCSV() {
+    const content = {{ sample_csv | tojson }};
+    const blob = new Blob([content], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'portfolio_sample.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+// File input validation
+document.getElementById('file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        // Check file size (1MB = 1048576 bytes)
+        if (file.size > 1048576) {
+            alert('File size exceeds 1MB limit. Please choose a smaller file.');
+            e.target.value = '';
+            return;
+        }
+        
+        // Check file type
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            alert('Please select a CSV file.');
+            e.target.value = '';
+            return;
+        }
+    }
+});
+</script>
+{% endblock %}

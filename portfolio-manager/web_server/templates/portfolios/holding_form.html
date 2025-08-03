@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if action == "add" %}Add Holding{% else %}Edit Holding{% endif %} - {{ portfolio.name }} - Portfolio Manager
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    {% if action == "add" %}
+                        <i class="bi bi-plus-circle"></i> Add New Holding
+                    {% else %}
+                        <i class="bi bi-pencil"></i> Edit Holding
+                    {% endif %}
+                </h4>
+                <small class="text-muted">Portfolio: {{ portfolio.name }}</small>
+            </div>
+            
+            <div class="card-body">
+                {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i> {{ error }}
+                    </div>
+                {% endif %}
+                
+                <form method="post" action="{% if action == 'add' %}/portfolios/{{ portfolio.id }}/holdings{% else %}/portfolios/{{ portfolio.id }}/holdings/{{ symbol }}/edit{% endif %}">
+                    <div class="mb-3">
+                        <label for="symbol" class="form-label">Stock Symbol</label>
+                        <input type="text" 
+                               class="form-control text-uppercase" 
+                               id="symbol" 
+                               name="symbol" 
+                               value="{{ symbol or '' }}"
+                               placeholder="e.g., AAPL, MSFT"
+                               required 
+                               maxlength="10"
+                               pattern="[A-Za-z0-9]+"
+                               {% if action == "edit" %}readonly{% endif %}>
+                        <div class="form-text">
+                            1-10 characters, letters and numbers only
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="shares" class="form-label">Number of Shares</label>
+                        <input type="number" 
+                               class="form-control" 
+                               id="shares" 
+                               name="shares" 
+                               value="{{ shares or '' }}"
+                               placeholder="e.g., 100"
+                               min="0" 
+                               step="0.001"
+                               required>
+                        <div class="form-text">
+                            Number of shares you currently own (can be 0)
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="target_allocation" class="form-label">Target Allocation (%)</label>
+                        <input type="number" 
+                               class="form-control" 
+                               id="target_allocation" 
+                               name="target_allocation" 
+                               value="{{ target_allocation or '' }}"
+                               placeholder="e.g., 25.0"
+                               min="0.01" 
+                               max="100" 
+                               step="0.01"
+                               required>
+                        <div class="form-text">
+                            Percentage of your total portfolio (0.01% - 100%)
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="/portfolios/{{ portfolio.id }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            {% if action == "add" %}
+                                <i class="bi bi-check-circle"></i> Add Holding
+                            {% else %}
+                                <i class="bi bi-check-circle"></i> Update Holding
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Help Card -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-question-circle"></i> Quick Tips
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li><strong>Symbol:</strong> Use standard stock ticker symbols (e.g., AAPL for Apple)</li>
+                    <li><strong>Shares:</strong> Enter the number of shares you currently own</li>
+                    <li><strong>Allocation:</strong> What percentage of your total portfolio should this represent?</li>
+                    <li><strong>Total:</strong> All holdings in a portfolio should add up to 100%</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-uppercase symbol input
+document.getElementById('symbol').addEventListener('input', function(e) {
+    e.target.value = e.target.value.toUpperCase();
+});
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const symbol = document.getElementById('symbol').value.trim();
+    const shares = parseFloat(document.getElementById('shares').value);
+    const allocation = parseFloat(document.getElementById('target_allocation').value);
+    
+    if (!symbol || symbol.length === 0) {
+        alert('Please enter a stock symbol');
+        e.preventDefault();
+        return;
+    }
+    
+    if (shares < 0) {
+        alert('Shares must be non-negative');
+        e.preventDefault();
+        return;
+    }
+    
+    if (allocation <= 0 || allocation > 100) {
+        alert('Target allocation must be between 0.01% and 100%');
+        e.preventDefault();
+        return;
+    }
+});
+</script>
+{% endblock %}
