@@ -110,13 +110,30 @@ class StockDataController:
         Get current stock price for a single symbol.
         
         Args:
-            symbol: Stock symbol (e.g., 'AAPL')
+            symbol: Stock symbol (e.g., 'AAPL') or '$CASH' for cash positions
             use_cache: Whether to use cached data if available
             
         Returns:
             StockPrice object or None if failed
         """
         symbol = symbol.upper().strip()
+        
+        # Handle cash positions specially
+        if symbol == '$CASH':
+            return StockPrice(
+                symbol='$CASH',
+                price=1.0,
+                currency='USD',
+                market_cap=None,
+                pe_ratio=None,
+                dividend_yield=None,
+                fifty_two_week_high=1.0,
+                fifty_two_week_low=1.0,
+                volume=None,
+                avg_volume=None,
+                market_state='ALWAYS_OPEN',
+                last_updated=datetime.now()
+            )
         
         # Check cache first
         if use_cache:
@@ -279,6 +296,12 @@ class StockDataController:
         
         for symbol in symbols:
             symbol = symbol.upper().strip()
+            
+            # Handle cash positions specially
+            if symbol == '$CASH':
+                results[symbol] = True
+                continue
+                
             try:
                 ticker = yf.Ticker(symbol)
                 info = ticker.info

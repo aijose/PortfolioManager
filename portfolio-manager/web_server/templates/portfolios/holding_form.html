@@ -34,18 +34,17 @@
                                id="symbol" 
                                name="symbol" 
                                value="{{ symbol or '' }}"
-                               placeholder="e.g., AAPL, MSFT"
+                               placeholder="e.g., AAPL, MSFT, $CASH"
                                required 
                                maxlength="10"
-                               pattern="[A-Za-z0-9]+"
                                {% if action == "edit" %}readonly{% endif %}>
                         <div class="form-text">
-                            1-10 characters, letters and numbers only
+                            Stock ticker symbols (e.g., AAPL, MSFT) or <strong>$CASH</strong> for cash positions
                         </div>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="shares" class="form-label">Number of Shares</label>
+                        <label for="shares" class="form-label" id="shares-label">Number of Shares</label>
                         <input type="number" 
                                class="form-control" 
                                id="shares" 
@@ -55,7 +54,7 @@
                                min="0" 
                                step="0.001"
                                required>
-                        <div class="form-text">
+                        <div class="form-text" id="shares-help">
                             Number of shares you currently own (can be 0)
                         </div>
                     </div>
@@ -102,8 +101,8 @@
             </div>
             <div class="card-body">
                 <ul class="mb-0">
-                    <li><strong>Symbol:</strong> Use standard stock ticker symbols (e.g., AAPL for Apple)</li>
-                    <li><strong>Shares:</strong> Enter the number of shares you currently own</li>
+                    <li><strong>Symbol:</strong> Use standard stock ticker symbols (e.g., AAPL for Apple) or <strong>$CASH</strong> for cash positions</li>
+                    <li><strong>Shares:</strong> Enter the number of shares you currently own (for $CASH, enter the dollar amount)</li>
                     <li><strong>Allocation:</strong> What percentage of your total portfolio should this represent?</li>
                     <li><strong>Total:</strong> All holdings in a portfolio should add up to 100%</li>
                 </ul>
@@ -113,10 +112,33 @@
 </div>
 
 <script>
-// Auto-uppercase symbol input
+// Auto-uppercase symbol input and update form for cash positions
 document.getElementById('symbol').addEventListener('input', function(e) {
     e.target.value = e.target.value.toUpperCase();
+    updateFormForCash();
 });
+
+function updateFormForCash() {
+    const symbol = document.getElementById('symbol').value.trim();
+    const sharesLabel = document.getElementById('shares-label');
+    const sharesInput = document.getElementById('shares');
+    const sharesHelp = document.getElementById('shares-help');
+    
+    if (symbol === '$CASH') {
+        sharesLabel.textContent = 'Cash Amount ($)';
+        sharesInput.placeholder = 'e.g., 10000.00';
+        sharesInput.step = '0.01';
+        sharesHelp.textContent = 'Dollar amount of cash you currently hold';
+    } else {
+        sharesLabel.textContent = 'Number of Shares';
+        sharesInput.placeholder = 'e.g., 100';
+        sharesInput.step = '0.001';
+        sharesHelp.textContent = 'Number of shares you currently own (can be 0)';
+    }
+}
+
+// Initialize form on page load
+document.addEventListener('DOMContentLoaded', updateFormForCash);
 
 // Form validation
 document.querySelector('form').addEventListener('submit', function(e) {
@@ -131,7 +153,7 @@ document.querySelector('form').addEventListener('submit', function(e) {
     }
     
     if (shares < 0) {
-        alert('Shares must be non-negative');
+        alert(symbol === '$CASH' ? 'Cash amount must be non-negative' : 'Shares must be non-negative');
         e.preventDefault();
         return;
     }

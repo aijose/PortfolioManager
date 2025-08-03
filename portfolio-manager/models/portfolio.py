@@ -24,14 +24,14 @@ class Portfolio(Base):
 
 
 class Holding(Base):
-    """Holding model representing a stock position within a portfolio."""
+    """Holding model representing a stock position or cash within a portfolio."""
     
     __tablename__ = "holdings"
     
     id = Column(Integer, primary_key=True, index=True)
     portfolio_id = Column(Integer, ForeignKey("portfolios.id"), nullable=False)
     symbol = Column(String(10), nullable=False, index=True)
-    shares = Column(Float, nullable=False, default=0.0)
+    shares = Column(Float, nullable=False, default=0.0)  # For $CASH, this represents dollar amount
     target_allocation = Column(Float, nullable=False)  # Percentage (0-100)
     last_price = Column(Float, nullable=True)  # Last fetched price
     
@@ -39,11 +39,17 @@ class Holding(Base):
     portfolio = relationship("Portfolio", back_populates="holdings")
     
     def __repr__(self):
+        if self.symbol == '$CASH':
+            return f"<Holding(symbol='$CASH', amount=${self.shares:.2f}, allocation={self.target_allocation}%)>"
         return f"<Holding(symbol='{self.symbol}', shares={self.shares}, allocation={self.target_allocation}%)>"
     
     @property
     def current_value(self):
         """Calculate current value of the holding."""
+        if self.symbol == '$CASH':
+            # For cash, shares represents the dollar amount directly
+            return self.shares
+        
         if self.last_price is None:
             return 0.0
         return self.shares * self.last_price

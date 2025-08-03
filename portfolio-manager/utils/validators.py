@@ -9,7 +9,7 @@ def validate_stock_symbol(symbol: str) -> bool:
     Validate a stock symbol.
     
     Args:
-        symbol: The stock symbol to validate
+        symbol: The stock symbol to validate (including special $CASH symbol)
         
     Returns:
         True if valid, False otherwise
@@ -19,6 +19,10 @@ def validate_stock_symbol(symbol: str) -> bool:
     
     # Remove whitespace and convert to uppercase
     symbol = symbol.strip().upper()
+    
+    # Allow $CASH as a special cash position symbol
+    if symbol == '$CASH':
+        return True
     
     # Check length (1-10 characters)
     if len(symbol) < 1 or len(symbol) > 10:

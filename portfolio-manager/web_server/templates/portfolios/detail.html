@@ -168,7 +168,7 @@
                     <thead>
                         <tr>
                             <th>Symbol</th>
-                            <th class="text-end">Shares</th>
+                            <th class="text-end">Shares/Amount</th>
                             <th class="text-end">Target %</th>
                             <th class="text-end">Current %</th>
                             <th class="text-end">Last Price</th>
@@ -181,8 +181,17 @@
                             <tr>
                                 <td>
                                     <strong>{{ holding.symbol }}</strong>
+                                    {% if holding.symbol == '$CASH' %}
+                                        <small class="text-muted d-block">Cash Position</small>
+                                    {% endif %}
                                 </td>
-                                <td class="text-end">{{ "%.1f"|format(holding.shares) }}</td>
+                                <td class="text-end">
+                                    {% if holding.symbol == '$CASH' %}
+                                        ${{ "%.2f"|format(holding.shares) }}
+                                    {% else %}
+                                        {{ "%.1f"|format(holding.shares) }}
+                                    {% endif %}
+                                </td>
                                 <td class="text-end">{{ "%.1f"|format(holding.target_allocation) }}%</td>
                                 <td class="text-end">
                                     {% if holding.last_price %}
