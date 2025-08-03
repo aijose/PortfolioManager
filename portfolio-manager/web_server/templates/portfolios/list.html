@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Portfolios - Portfolio Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>My Portfolios</h1>
+    <a href="/portfolios/new" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> New Portfolio
+    </a>
+</div>
+
+{% if portfolio_summaries %}
+    <div class="row">
+        {% for item in portfolio_summaries %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <a href="/portfolios/{{ item.portfolio.id }}" class="text-decoration-none">
+                                {{ item.portfolio.name }}
+                            </a>
+                        </h5>
+                        
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                Created: {{ item.portfolio.created_date.strftime('%Y-%m-%d') }}
+                            </small>
+                        </div>
+                        
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="border-end">
+                                    <h6 class="text-muted mb-1">Holdings</h6>
+                                    <span class="h5">{{ item.summary.total_holdings }}</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <h6 class="text-muted mb-1">Total Value</h6>
+                                {% if item.summary.total_value > 0 %}
+                                    <span class="h5 text-success">${{ "%.2f"|format(item.summary.total_value) }}</span>
+                                {% else %}
+                                    <span class="h5 text-muted">--</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        {% if not item.summary.is_allocation_valid %}
+                            <div class="alert alert-warning mt-3 py-2" role="alert">
+                                <small>
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    Allocations sum to {{ "%.1f"|format(item.summary.total_target_allocation) }}%
+                                </small>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-footer bg-transparent">
+                        <div class="d-flex justify-content-between">
+                            <a href="/portfolios/{{ item.portfolio.id }}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                            
+                            <form method="post" action="/portfolios/{{ item.portfolio.id }}/delete" 
+                                  onsubmit="return confirm('Are you sure you want to delete this portfolio? This action cannot be undone.')" 
+                                  class="d-inline">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-briefcase display-1 text-muted"></i>
+        <h3 class="mt-3 text-muted">No Portfolios Yet</h3>
+        <p class="text-muted">Create your first portfolio to start managing your investments.</p>
+        <a href="/portfolios/new" class="btn btn-primary btn-lg">
+            <i class="bi bi-plus-circle"></i> Create Portfolio
+        </a>
+    </div>
+{% endif %}
+{% endblock %}

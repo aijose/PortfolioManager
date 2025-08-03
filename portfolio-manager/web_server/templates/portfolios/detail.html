@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}{{ portfolio.name }} - Portfolio Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1>{{ portfolio.name }}</h1>
+        <small class="text-muted">
+            Created: {{ portfolio.created_date.strftime('%Y-%m-%d %H:%M') }}
+            {% if portfolio.modified_date != portfolio.created_date %}
+                | Modified: {{ portfolio.modified_date.strftime('%Y-%m-%d %H:%M') }}
+            {% endif %}
+        </small>
+    </div>
+    
+    <div>
+        <a href="/portfolios" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Portfolios
+        </a>
+    </div>
+</div>
+
+<!-- Portfolio Summary -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2 text-muted">Total Holdings</h6>
+                <h4 class="card-title">{{ summary.total_holdings }}</h4>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2 text-muted">Portfolio Value</h6>
+                {% if summary.total_value > 0 %}
+                    <h4 class="card-title text-success">${{ "%.2f"|format(summary.total_value) }}</h4>
+                {% else %}
+                    <h4 class="card-title text-muted">--</h4>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2 text-muted">Target Allocation</h6>
+                <h4 class="card-title {% if summary.is_allocation_valid %}text-success{% else %}text-warning{% endif %}">
+                    {{ "%.1f"|format(summary.total_target_allocation) }}%
+                </h4>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2 text-muted">Price Updates</h6>
+                <h4 class="card-title">{{ summary.holdings_with_prices }}/{{ summary.total_holdings }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Allocation Validation Alert -->
+{% if not summary.is_allocation_valid %}
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-exclamation-triangle"></i>
+        <strong>Warning:</strong> Target allocations sum to {{ "%.1f"|format(summary.total_target_allocation) }}% instead of 100%.
+        Please review your allocations.
+    </div>
+{% endif %}
+
+<!-- Holdings Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Holdings</h5>
+        <button class="btn btn-primary btn-sm" disabled>
+            <i class="bi bi-plus-circle"></i> Add Holding
+        </button>
+    </div>
+    
+    <div class="card-body">
+        {% if holdings %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th class="text-end">Shares</th>
+                            <th class="text-end">Target %</th>
+                            <th class="text-end">Current %</th>
+                            <th class="text-end">Last Price</th>
+                            <th class="text-end">Current Value</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for holding in holdings %}
+                            <tr>
+                                <td>
+                                    <strong>{{ holding.symbol }}</strong>
+                                </td>
+                                <td class="text-end">{{ "%.1f"|format(holding.shares) }}</td>
+                                <td class="text-end">{{ "%.1f"|format(holding.target_allocation) }}%</td>
+                                <td class="text-end">
+                                    {% if holding.last_price %}
+                                        {{ "%.1f"|format(holding.current_allocation_percent) }}%
+                                    {% else %}
+                                        <span class="text-muted">--</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if holding.last_price %}
+                                        ${{ "%.2f"|format(holding.last_price) }}
+                                    {% else %}
+                                        <span class="text-muted">--</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if holding.last_price %}
+                                        ${{ "%.2f"|format(holding.current_value) }}
+                                    {% else %}
+                                        <span class="text-muted">--</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn btn-outline-secondary btn-sm" disabled>
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" disabled>
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="bi bi-graph-up display-1 text-muted"></i>
+                <h5 class="mt-3 text-muted">No Holdings Yet</h5>
+                <p class="text-muted">Add your first stock holding to get started.</p>
+                <button class="btn btn-primary" disabled>
+                    <i class="bi bi-plus-circle"></i> Add First Holding
+                </button>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Actions -->
+<div class="mt-4">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="card-title">Import from CSV</h6>
+                    <p class="card-text text-muted">Upload a CSV file with your holdings</p>
+                    <button class="btn btn-outline-primary" disabled>
+                        <i class="bi bi-upload"></i> Import CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="card-title">Rebalancing</h6>
+                    <p class="card-text text-muted">Analyze and rebalance your portfolio</p>
+                    <button class="btn btn-outline-success" disabled>
+                        <i class="bi bi-arrow-repeat"></i> Analyze Rebalancing
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
