@@ -154,7 +154,7 @@ A Python-based portfolio management application that enables individual investor
 
 #### 3.1.1 Core Technologies
 - **Language**: Python 3.8+
-- **Web Framework**: Flask or FastAPI for web server
+- **Web Framework**: FastAPI for web server
 - **Frontend**: HTML5, CSS3, JavaScript (or React/Vue.js for enhanced UI)
 - **Alternative GUI**: Tkinter (built-in) or PyQt5/6 for desktop mode
 - **Data Processing**: Pandas, NumPy
@@ -176,7 +176,7 @@ A Python-based portfolio management application that enables individual investor
 portfolio_manager/
 ├── main.py                 # Application entry point (web server or desktop)
 ├── web_server/             # Web server components
-│   ├── app.py             # Flask/FastAPI application
+│   ├── app.py             # FastAPI application
 │   ├── routes/            # API endpoints and web routes
 │   ├── static/            # CSS, JS, images
 │   └── templates/         # HTML templates
