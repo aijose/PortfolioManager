@@ -6,7 +6,7 @@
 Stock Portfolio Manager (SPM)
 
 ### 1.2 Product Vision
-A Python-based desktop application that enables individual investors to efficiently manage, analyze, and track their stock investment portfolios through CSV file import and comprehensive portfolio analytics.
+A Python-based desktop application that enables individual investors to efficiently manage, analyze, and rebalance their stock investment portfolios through CSV file import with target allocation percentages and comprehensive portfolio analytics.
 
 ### 1.3 Target Audience
 - Individual retail investors
@@ -29,27 +29,57 @@ A Python-based desktop application that enables individual investors to efficien
 
 - **Input Format**: Accept CSV files with the following required columns:
   - Symbol (stock ticker)
-  - Quantity (number of shares)
-  - Purchase Price (price per share at purchase)
-  - Purchase Date (YYYY-MM-DD format)
-  
-- **Optional Columns**:
-  - Transaction Type (Buy/Sell)
-  - Fees/Commissions
-  - Notes/Description
-  - Sector/Category
+  - Shares (current number of shares held)
+  - Allocation (target percentage of total portfolio value, must sum to 100%)
 
 - **Validation Requirements**:
   - Validate stock symbols against known exchanges
-  - Ensure positive quantities and prices
-  - Validate date formats
+  - Ensure shares are non-negative numbers (can be 0 for new positions)
+  - Ensure allocation percentages are positive and sum to 100%
+  - Validate that allocation percentages are between 0.01% and 99.99%
   - Handle missing or malformed data gracefully
+  - Check for duplicate symbols in the same portfolio
 
-#### 2.1.2 Portfolio Data Management
-- Create, edit, and delete portfolio entries
-- Support multiple portfolios per user
-- Export portfolio data to CSV format
-- Backup and restore portfolio data
+#### 2.1.2 Portfolio Rebalancing Engine
+**Priority: High**
+
+- **Rebalancing Analysis**:
+  - Compare current portfolio allocation vs. target allocation from CSV
+  - Calculate required buy/sell transactions to achieve target allocation
+  - Account for transaction costs and minimum trade amounts
+  - Support partial rebalancing (within tolerance bands)
+
+- **Transaction Generation**:
+  - Generate detailed buy/sell recommendations
+  - Optimize transaction order to minimize costs
+  - Handle fractional shares where supported
+  - Provide cash requirement calculations
+
+- **Rebalancing Reports**:
+  - Before/after allocation comparison
+  - Transaction summary with estimated costs
+  - Expected portfolio value after rebalancing
+  - Risk impact analysis of proposed changes
+
+#### 2.1.3 Multiple Named Portfolios
+**Priority: High**
+
+- **Portfolio Management**:
+  - Create multiple named portfolios (e.g., "Retirement", "Growth", "Conservative")
+  - Switch between portfolios in the interface
+  - Each portfolio maintains its own target allocations and current holdings
+  - Import separate CSV files for different portfolios
+
+- **Portfolio Operations**:
+  - Create, rename, and delete portfolios
+  - Duplicate portfolios for testing different allocations
+  - Compare performance across multiple portfolios
+  - Export individual portfolio data to CSV format
+
+#### 2.1.4 Portfolio Data Management
+- Backup and restore all portfolio data
+- Import current holdings from brokerage statements
+- Bulk operations across multiple portfolios
 
 ### 2.2 Real-time Data Integration
 
@@ -169,22 +199,26 @@ portfolio_manager/
 ### 4.1 Main Interface Components
 
 #### 4.1.1 Menu Structure
-- **File**: New Portfolio, Open, Save, Import CSV, Export, Exit
-- **Edit**: Add Transaction, Edit Transaction, Delete Transaction
-- **View**: Dashboard, Holdings, Transactions, Reports
-- **Tools**: Refresh Prices, Settings, Backup
+- **File**: New Portfolio, Open Portfolio, Save, Import CSV, Export, Exit
+- **Portfolio**: Create Portfolio, Switch Portfolio, Rename Portfolio, Delete Portfolio
+- **Rebalancing**: Analyze Rebalancing, Generate Transactions, Execute Rebalancing
+- **View**: Dashboard, Target vs Current, Rebalancing Report, Portfolio Comparison
+- **Tools**: Refresh Prices, Settings, Backup All Portfolios
 - **Help**: User Guide, About
 
 #### 4.1.2 Main Dashboard
-- Portfolio summary widget
-- Holdings table with real-time values
-- Performance chart
-- Recent transactions panel
+- Portfolio selector dropdown/tabs for switching between portfolios
+- Current portfolio summary widget with name display
+- Holdings table with real-time values for selected portfolio
+- Target vs current allocation comparison
+- Rebalancing recommendations panel
 
 #### 4.1.3 Data Entry Forms
-- Transaction entry form with validation
-- Portfolio settings configuration
-- CSV import wizard with field mapping
+- New portfolio creation dialog with name input
+- CSV import wizard with portfolio selection
+- Manual allocation and shares adjustment interface
+- Rebalancing parameters configuration
+- Portfolio management interface (rename, delete, duplicate)
 
 ### 4.2 Usability Requirements
 - Intuitive navigation with clear menu structure
@@ -199,18 +233,24 @@ portfolio_manager/
 
 #### 5.1.1 CSV Format Specification
 ```csv
-Symbol,Quantity,Purchase_Price,Purchase_Date,Transaction_Type,Fees,Notes
-AAPL,100,150.25,2023-01-15,Buy,9.99,Initial purchase
-MSFT,50,250.00,2023-02-01,Buy,9.99,Tech allocation
-AAPL,50,160.00,2023-03-01,Sell,9.99,Partial profit taking
+Symbol,Shares,Allocation
+AAPL,150,25.0
+MSFT,80,20.0
+GOOGL,45,15.0
+TSLA,100,10.0
+JPM,75,10.0
+JNJ,50,8.0
+VTI,200,7.0
+BND,500,5.0
 ```
 
 #### 5.1.2 Data Validation Rules
 - Stock symbols must be valid ticker symbols (2-5 alphanumeric characters)
-- Quantities must be positive integers
-- Prices must be positive decimal numbers
-- Dates must be in YYYY-MM-DD format and not future dates
-- Transaction types must be "Buy" or "Sell"
+- Shares must be non-negative numbers (can be 0 for new positions)
+- Allocation percentages must be positive numbers between 0.01 and 99.99
+- Total allocation percentages must sum to 100.0% (±0.01% tolerance)
+- No duplicate symbols within the same portfolio
+- Allocation percentages must be specified with reasonable precision (max 2 decimal places)
 
 ### 5.2 Output Data Formats
 - CSV export with all transaction history
@@ -279,11 +319,12 @@ AAPL,50,160.00,2023-03-01,Sell,9.99,Partial profit taking
 ## 10. Acceptance Criteria
 
 ### 10.1 Minimum Viable Product (MVP)
-- [ ] Successfully import CSV portfolio files
-- [ ] Display current portfolio value and performance
-- [ ] Calculate basic gains/losses for individual positions
-- [ ] Export portfolio data to CSV
-- [ ] Update stock prices from external API
+- [ ] Successfully import CSV files with target allocation percentages
+- [ ] Display current portfolio allocation vs. target allocation
+- [ ] Calculate required buy/sell transactions for rebalancing
+- [ ] Generate rebalancing recommendations with cost estimates
+- [ ] Export rebalancing transactions to CSV
+- [ ] Update stock prices from external API for valuation
 
 ### 10.2 Full Release Criteria
 - [ ] All functional requirements implemented
