@@ -6,7 +6,7 @@
 Stock Portfolio Manager (SPM)
 
 ### 1.2 Product Vision
-A Python-based desktop application that enables individual investors to efficiently manage, analyze, and rebalance their stock investment portfolios through CSV file import with target allocation percentages and comprehensive portfolio analytics.
+A Python-based portfolio management application that enables individual investors to efficiently manage, analyze, and rebalance their stock investment portfolios through CSV file import with target allocation percentages and comprehensive portfolio analytics. The application can be accessed via a local web server interface or traditional desktop GUI.
 
 ### 1.3 Target Audience
 - Individual retail investors
@@ -154,9 +154,11 @@ A Python-based desktop application that enables individual investors to efficien
 
 #### 3.1.1 Core Technologies
 - **Language**: Python 3.8+
-- **GUI Framework**: Tkinter (built-in) or PyQt5/6 for enhanced UI
+- **Web Framework**: Flask or FastAPI for web server
+- **Frontend**: HTML5, CSS3, JavaScript (or React/Vue.js for enhanced UI)
+- **Alternative GUI**: Tkinter (built-in) or PyQt5/6 for desktop mode
 - **Data Processing**: Pandas, NumPy
-- **Visualization**: Matplotlib, Plotly, or Seaborn
+- **Visualization**: Plotly.js for interactive web charts, Matplotlib for static exports
 - **API Integration**: Requests library
 - **Data Storage**: SQLite for local database
 
@@ -172,14 +174,19 @@ A Python-based desktop application that enables individual investors to efficien
 #### 3.2.1 Application Structure
 ```
 portfolio_manager/
-├── main.py                 # Application entry point
-├── models/                 # Data models and database schema
-├── controllers/            # Business logic and API interactions
-├── views/                  # GUI components and layouts
-├── utils/                  # Utility functions and helpers
-├── data/                   # Local data storage
-├── config/                 # Configuration files
-└── tests/                  # Unit and integration tests
+├── main.py                 # Application entry point (web server or desktop)
+├── web_server/             # Web server components
+│   ├── app.py             # Flask/FastAPI application
+│   ├── routes/            # API endpoints and web routes
+│   ├── static/            # CSS, JS, images
+│   └── templates/         # HTML templates
+├── desktop/               # Desktop GUI components (optional)
+├── models/                # Data models and database schema
+├── controllers/           # Business logic and API interactions
+├── utils/                 # Utility functions and helpers
+├── data/                  # Local data storage
+├── config/                # Configuration files
+└── tests/                 # Unit and integration tests
 ```
 
 #### 3.2.2 Data Architecture
@@ -189,43 +196,82 @@ portfolio_manager/
 - **Backup**: Automated daily backups of portfolio data
 
 ### 3.3 Performance Requirements
-- Application startup time: < 5 seconds
-- Portfolio refresh time: < 30 seconds for 50 stocks
-- Memory usage: < 200MB for typical portfolios
-- File import time: < 10 seconds for 1000+ transactions
+- **Web Server Mode**:
+  - Server startup time: < 10 seconds
+  - Page load time: < 3 seconds
+  - API response time: < 2 seconds for portfolio operations
+  - Concurrent user support: Single user (local server)
+- **Desktop Mode**:
+  - Application startup time: < 5 seconds
+- **General Performance**:
+  - Portfolio refresh time: < 30 seconds for 50 stocks
+  - Memory usage: < 200MB for typical portfolios
+  - CSV import time: < 10 seconds for 1000+ rows
 
 ## 4. User Interface Requirements
 
-### 4.1 Main Interface Components
+### 4.1 Deployment Options
 
-#### 4.1.1 Menu Structure
-- **File**: New Portfolio, Open Portfolio, Save, Import CSV, Export, Exit
-- **Portfolio**: Create Portfolio, Switch Portfolio, Rename Portfolio, Delete Portfolio
-- **Rebalancing**: Analyze Rebalancing, Generate Transactions, Execute Rebalancing
-- **View**: Dashboard, Target vs Current, Rebalancing Report, Portfolio Comparison
-- **Tools**: Refresh Prices, Settings, Backup All Portfolios
-- **Help**: User Guide, About
+#### 4.1.1 Local Web Server (Primary)
+**Priority: High**
 
-#### 4.1.2 Main Dashboard
-- Portfolio selector dropdown/tabs for switching between portfolios
-- Current portfolio summary widget with name display
-- Holdings table with real-time values for selected portfolio
-- Target vs current allocation comparison
-- Rebalancing recommendations panel
+- **Launch Method**: Run `python main.py --web` or `python main.py` (default)
+- **Access**: Navigate to `http://localhost:5000` (or configurable port)
+- **Benefits**: 
+  - Cross-platform compatibility
+  - Modern web UI with responsive design
+  - No additional GUI framework dependencies
+  - Easy to style and customize
 
-#### 4.1.3 Data Entry Forms
-- New portfolio creation dialog with name input
-- CSV import wizard with portfolio selection
-- Manual allocation and shares adjustment interface
-- Rebalancing parameters configuration
-- Portfolio management interface (rename, delete, duplicate)
+#### 4.1.2 Desktop GUI (Alternative)
+**Priority: Medium**
 
-### 4.2 Usability Requirements
-- Intuitive navigation with clear menu structure
-- Keyboard shortcuts for common actions
-- Error messages with clear guidance
-- Responsive design that works on various screen sizes
-- Accessibility features for users with disabilities
+- **Launch Method**: Run `python main.py --desktop`
+- **Framework**: Tkinter or PyQt for native desktop experience
+- **Use Case**: Users preferring traditional desktop applications
+
+### 4.2 Web Interface Components
+
+#### 4.2.1 Navigation Structure
+- **Header Navigation Bar**:
+  - Portfolio selector dropdown
+  - Main navigation links (Dashboard, Portfolios, Rebalancing, Reports)
+  - Settings and Help icons
+- **Side Panel** (optional):
+  - Quick portfolio switcher
+  - Recent actions
+  - Portfolio summary stats
+
+#### 4.2.2 Main Dashboard Page
+- Portfolio summary cards with key metrics
+- Holdings table with real-time values and allocation percentages
+- Interactive pie chart for current vs target allocation
+- Rebalancing recommendations panel with action buttons
+- Recent activity feed
+
+#### 4.2.3 Portfolio Management Pages
+- **Portfolio List**: View all portfolios with summary stats
+- **Portfolio Detail**: Individual portfolio view with full holdings
+- **Create/Edit Portfolio**: Form for portfolio creation and editing
+- **CSV Import**: File upload interface with validation feedback
+
+#### 4.2.4 Rebalancing Interface
+- **Analysis Page**: Side-by-side current vs target comparison
+- **Transaction Generator**: Buy/sell recommendations with cost estimates
+- **Execute Rebalancing**: Confirmation interface for proposed trades
+
+### 4.3 Usability Requirements
+- **Web Interface**:
+  - Responsive design that works on desktop, tablet, and mobile
+  - Modern browser compatibility (Chrome, Firefox, Safari, Edge)
+  - Fast page transitions and loading indicators
+  - Intuitive navigation with breadcrumbs
+  - Drag-and-drop file upload for CSV imports
+- **General**:
+  - Error messages with clear guidance and suggested actions
+  - Real-time validation for form inputs
+  - Accessibility features (ARIA labels, keyboard navigation)
+  - Auto-save functionality for user inputs
 
 ## 5. Data Requirements
 
@@ -319,11 +365,12 @@ BND,500,5.0
 ## 10. Acceptance Criteria
 
 ### 10.1 Minimum Viable Product (MVP)
-- [ ] Successfully import CSV files with target allocation percentages
-- [ ] Display current portfolio allocation vs. target allocation
+- [ ] Launch local web server with basic interface
+- [ ] Successfully import CSV files with Symbol, Shares, Allocation columns
+- [ ] Display current portfolio allocation vs. target allocation in web UI
 - [ ] Calculate required buy/sell transactions for rebalancing
 - [ ] Generate rebalancing recommendations with cost estimates
-- [ ] Export rebalancing transactions to CSV
+- [ ] Create and manage multiple named portfolios
 - [ ] Update stock prices from external API for valuation
 
 ### 10.2 Full Release Criteria
