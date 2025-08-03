@@ -1,0 +1,39 @@
+[project]
+name = "portfolio-manager"
+version = "0.1.0"
+description = "A Python-based portfolio management application for stock investment rebalancing"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.104.1",
+    "uvicorn[standard]>=0.24.0",
+    "jinja2>=3.1.2",
+    "python-multipart>=0.0.6",
+    "pandas>=2.1.4",
+    "numpy>=1.25.2",
+    "sqlalchemy>=2.0.23",
+    "yfinance>=0.2.18",
+    "plotly>=5.17.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.3",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.25.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
