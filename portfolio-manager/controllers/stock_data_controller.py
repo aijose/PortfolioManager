@@ -130,20 +130,38 @@ class StockDataController:
             ticker = yf.Ticker(symbol)
             info = ticker.info
             
-            # Check if we got valid data
-            if not info or 'currentPrice' not in info:
-                # Try fast_info as fallback
+            # Check if we got valid data and extract price
+            current_price = None
+            
+            # Try multiple price fields in order of preference
+            price_fields = ['currentPrice', 'regularMarketPrice', 'previousClose', 'open']
+            for field in price_fields:
+                if info and info.get(field) is not None:
+                    current_price = info.get(field)
+                    break
+            
+            # If no price found in info, try fast_info as fallback
+            if current_price is None:
                 try:
                     fast_info = ticker.fast_info
                     current_price = fast_info.get('last_price')
-                    if current_price is None:
-                        logger.warning(f"No price data available for {symbol}")
-                        return None
                 except Exception as e:
-                    logger.warning(f"Failed to get fast_info for {symbol}: {e}")
-                    return None
-            else:
-                current_price = info.get('currentPrice')
+                    logger.debug(f"Failed to get fast_info for {symbol}: {e}")
+            
+            # If still no price, try recent history
+            if current_price is None:
+                try:
+                    hist = ticker.history(period="1d")
+                    if not hist.empty and 'Close' in hist.columns:
+                        current_price = hist['Close'].iloc[-1]
+                        logger.info(f"Using historical close price for {symbol}")
+                except Exception as e:
+                    logger.debug(f"Failed to get history for {symbol}: {e}")
+            
+            # If we still don't have a price, give up
+            if current_price is None:
+                logger.warning(f"No price data available for {symbol}")
+                return None
             
             # Determine market state
             market_state = self._determine_market_state(info)
@@ -265,12 +283,10 @@ class StockDataController:
                 ticker = yf.Ticker(symbol)
                 info = ticker.info
                 
-                # A valid symbol should have basic info
-                is_valid = bool(info and (
-                    'currentPrice' in info or 
-                    'regularMarketPrice' in info or
-                    'previousClose' in info
-                ))
+                # A valid symbol should have basic info and at least one price field
+                price_fields = ['currentPrice', 'regularMarketPrice', 'previousClose', 'open']
+                has_price = any(info.get(field) is not None for field in price_fields) if info else False
+                is_valid = bool(info and has_price)
                 results[symbol] = is_valid
                 
             except Exception as e:
