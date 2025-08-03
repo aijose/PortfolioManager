@@ -36,6 +36,41 @@
     </div>
 {% endif %}
 
+{% if request.query_params.get('refreshed') %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-arrow-repeat"></i>
+        Successfully updated {{ request.query_params.get('refreshed') }} prices.
+        {% if request.query_params.get('failed') and request.query_params.get('failed') != '0' %}
+            {{ request.query_params.get('failed') }} symbols failed to update.
+        {% endif %}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+{% endif %}
+
+{% if request.query_params.get('price_updated') %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-currency-dollar"></i>
+        Updated {{ request.query_params.get('price_updated') }} price to ${{ request.query_params.get('new_price') }}.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+{% endif %}
+
+{% if request.query_params.get('error') %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle"></i>
+        Error: {{ request.query_params.get('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+{% endif %}
+
+{% if request.query_params.get('price_error') %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle"></i>
+        Price update failed: {{ request.query_params.get('price_error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+{% endif %}
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1>{{ portfolio.name }}</h1>
@@ -112,9 +147,18 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Holdings</h5>
-        <a href="/portfolios/{{ portfolio.id }}/holdings/new" class="btn btn-primary btn-sm">
-            <i class="bi bi-plus-circle"></i> Add Holding
-        </a>
+        <div class="btn-group" role="group">
+            {% if holdings %}
+                <form method="post" action="/portfolios/{{ portfolio.id }}/refresh-prices" class="d-inline">
+                    <button type="submit" class="btn btn-outline-success btn-sm" title="Refresh all prices">
+                        <i class="bi bi-arrow-repeat"></i> Refresh Prices
+                    </button>
+                </form>
+            {% endif %}
+            <a href="/portfolios/{{ portfolio.id }}/holdings/new" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i> Add Holding
+            </a>
+        </div>
     </div>
     
     <div class="card-body">
@@ -163,6 +207,15 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="btn-group" role="group">
+                                        <form method="post" 
+                                              action="/portfolios/{{ portfolio.id }}/holdings/{{ holding.symbol }}/refresh-price" 
+                                              class="d-inline">
+                                            <button type="submit" 
+                                                    class="btn btn-outline-info btn-sm" 
+                                                    title="Refresh price for {{ holding.symbol }}">
+                                                <i class="bi bi-arrow-repeat"></i>
+                                            </button>
+                                        </form>
                                         <a href="/portfolios/{{ portfolio.id }}/holdings/{{ holding.symbol }}/edit" 
                                            class="btn btn-outline-secondary btn-sm" 
                                            title="Edit holding">
@@ -227,4 +280,73 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add loading indicators to price refresh buttons
+    function addLoadingIndicator(button, originalText) {
+        button.disabled = true;
+        const spinner = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>';
+        button.innerHTML = spinner + 'Updating...';
+    }
+    
+    function removeLoadingIndicator(button, originalText) {
+        button.disabled = false;
+        button.innerHTML = originalText;
+    }
+    
+    // Handle individual price refresh buttons
+    document.querySelectorAll('form[action*="/refresh-price"] button').forEach(function(button) {
+        const form = button.closest('form');
+        const originalHTML = button.innerHTML;
+        
+        form.addEventListener('submit', function(e) {
+            addLoadingIndicator(button, originalHTML);
+        });
+    });
+    
+    // Handle bulk price refresh button
+    const bulkRefreshForm = document.querySelector('form[action*="/refresh-prices"]');
+    if (bulkRefreshForm) {
+        const button = bulkRefreshForm.querySelector('button');
+        const originalHTML = button.innerHTML;
+        
+        bulkRefreshForm.addEventListener('submit', function(e) {
+            addLoadingIndicator(button, originalHTML);
+            
+            // Show progress message
+            const cardHeader = document.querySelector('.card-header');
+            if (cardHeader) {
+                const progressDiv = document.createElement('div');
+                progressDiv.className = 'alert alert-info mt-2 mb-0';
+                progressDiv.innerHTML = '<i class="bi bi-arrow-repeat"></i> Updating prices for all holdings...';
+                cardHeader.appendChild(progressDiv);
+            }
+        });
+    }
+    
+    // Auto-dismiss alerts after 5 seconds
+    document.querySelectorAll('.alert-dismissible').forEach(function(alert) {
+        setTimeout(function() {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }, 5000);
+    });
+    
+    // Add hover effects to price refresh buttons
+    document.querySelectorAll('button[title*="Refresh"]').forEach(function(button) {
+        button.addEventListener('mouseenter', function() {
+            if (!button.disabled) {
+                button.classList.add('shadow-sm');
+            }
+        });
+        
+        button.addEventListener('mouseleave', function() {
+            button.classList.remove('shadow-sm');
+        });
+    });
+});
+</script>
 {% endblock %}

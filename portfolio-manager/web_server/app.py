@@ -18,6 +18,7 @@ from controllers.portfolio_controller import (
 from utils.csv_parser import CSVPortfolioParser
 from utils.validators import validate_file_extension
 from web_server.routes.portfolios import router as portfolios_router
+from web_server.routes.stock_data import router as stock_data_router
 
 # Create FastAPI app
 app = FastAPI(
@@ -28,6 +29,7 @@ app = FastAPI(
 
 # Include API routers
 app.include_router(portfolios_router)
+app.include_router(stock_data_router)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="web_server/static"), name="static")
@@ -344,6 +346,43 @@ async def delete_holding_web(portfolio_id: int, symbol: str, db: Session = Depen
         raise HTTPException(status_code=404, detail="Holding not found")
     
     return RedirectResponse(url=f"/portfolios/{portfolio_id}?deleted={symbol}", status_code=303)
+
+
+@app.post("/portfolios/{portfolio_id}/refresh-prices", response_class=HTMLResponse)
+async def refresh_portfolio_prices_web(portfolio_id: int, db: Session = Depends(get_db)):
+    """Refresh all portfolio prices via web interface."""
+    controller = PortfolioController(db)
+    
+    portfolio = controller.get_portfolio(portfolio_id)
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    
+    result = controller.refresh_portfolio_prices(portfolio_id)
+    
+    if result["success"]:
+        message = f"refreshed={result['updated_count']}&failed={result['failed_count']}"
+        if result["failed_symbols"]:
+            failed_symbols = ",".join(result["failed_symbols"])
+            message += f"&failed_symbols={failed_symbols}"
+    else:
+        message = f"error={result.get('error', 'Failed to refresh prices')}"
+    
+    return RedirectResponse(url=f"/portfolios/{portfolio_id}?{message}", status_code=303)
+
+
+@app.post("/portfolios/{portfolio_id}/holdings/{symbol}/refresh-price", response_class=HTMLResponse)
+async def refresh_single_price_web(portfolio_id: int, symbol: str, db: Session = Depends(get_db)):
+    """Refresh single holding price via web interface."""
+    controller = PortfolioController(db)
+    
+    result = controller.update_single_holding_price(portfolio_id, symbol)
+    
+    if result["success"]:
+        message = f"price_updated={symbol}&new_price={result['price']:.2f}"
+    else:
+        message = f"price_error={result.get('error', 'Failed to update price')}"
+    
+    return RedirectResponse(url=f"/portfolios/{portfolio_id}?{message}", status_code=303)
 
 
 # API endpoints for AJAX requests
