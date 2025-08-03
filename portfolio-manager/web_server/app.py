@@ -5,7 +5,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from models.database import get_db, create_tables
 from models.portfolio import Portfolio, Holding
@@ -17,8 +17,10 @@ from controllers.portfolio_controller import (
 )
 from utils.csv_parser import CSVPortfolioParser
 from utils.validators import validate_file_extension
+from controllers.rebalancing_controller import RebalancingController
 from web_server.routes.portfolios import router as portfolios_router
 from web_server.routes.stock_data import router as stock_data_router
+from web_server.routes.rebalancing import router as rebalancing_router
 
 # Create FastAPI app
 app = FastAPI(
@@ -30,6 +32,7 @@ app = FastAPI(
 # Include API routers
 app.include_router(portfolios_router)
 app.include_router(stock_data_router)
+app.include_router(rebalancing_router)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="web_server/static"), name="static")
@@ -383,6 +386,66 @@ async def refresh_single_price_web(portfolio_id: int, symbol: str, db: Session =
         message = f"price_error={result.get('error', 'Failed to update price')}"
     
     return RedirectResponse(url=f"/portfolios/{portfolio_id}?{message}", status_code=303)
+
+
+@app.get("/portfolios/{portfolio_id}/rebalancing", response_class=HTMLResponse)
+async def view_rebalancing_analysis(
+    request: Request, 
+    portfolio_id: int, 
+    tolerance: Optional[float] = 2.0,
+    cost_rate: Optional[float] = 0.005,
+    db: Session = Depends(get_db)
+):
+    """Display rebalancing analysis page."""
+    controller = PortfolioController(db)
+    portfolio = controller.get_portfolio(portfolio_id)
+    
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    
+    try:
+        rebalancing_controller = RebalancingController(
+            db, 
+            tolerance_threshold=tolerance,
+            transaction_cost_rate=cost_rate
+        )
+        
+        analysis = rebalancing_controller.analyze_portfolio_rebalancing(portfolio_id)
+        
+        # Calculate cost percentage
+        cost_percentage = (analysis.total_transaction_cost / analysis.total_value * 100) if analysis.total_value > 0 else 0
+        
+        return templates.TemplateResponse("portfolios/rebalancing.html", {
+            "request": request,
+            "portfolio": portfolio,
+            "is_balanced": analysis.is_balanced,
+            "total_value": analysis.total_value,
+            "tolerance_threshold": analysis.tolerance_threshold,
+            "transaction_cost_rate": cost_rate,
+            "allocation_drifts": analysis.allocation_drifts,
+            "transactions": analysis.transactions,
+            "transaction_count": len(analysis.transactions),
+            "total_transaction_cost": analysis.total_transaction_cost,
+            "cost_percentage": cost_percentage,
+            "estimated_final_value": analysis.estimated_final_value
+        })
+        
+    except ValueError as e:
+        return templates.TemplateResponse("portfolios/rebalancing.html", {
+            "request": request,
+            "portfolio": portfolio,
+            "error": str(e),
+            "is_balanced": True,
+            "total_value": 0,
+            "tolerance_threshold": tolerance,
+            "transaction_cost_rate": cost_rate,
+            "allocation_drifts": [],
+            "transactions": [],
+            "transaction_count": 0,
+            "total_transaction_cost": 0,
+            "cost_percentage": 0,
+            "estimated_final_value": 0
+        })
 
 
 # API endpoints for AJAX requests
