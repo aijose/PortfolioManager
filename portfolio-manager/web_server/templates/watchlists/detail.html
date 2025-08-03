@@ -90,49 +90,6 @@
     </div>
 </div>
 
-<!-- Summary Cards -->
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-muted">Total Stocks</h5>
-                <h3 class="card-text">{{ summary.total_items }}</h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-muted">With Prices</h5>
-                <h3 class="card-text {% if summary.price_coverage >= 80 %}text-success{% elif summary.price_coverage >= 50 %}text-warning{% else %}text-danger{% endif %}">
-                    {{ summary.items_with_prices }}
-                </h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-muted">With Notes</h5>
-                <h3 class="card-text">{{ summary.items_with_notes }}</h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-muted">Avg Price</h5>
-                <h3 class="card-text">
-                    {% if summary.average_price > 0 %}
-                        ${{ "%.2f"|format(summary.average_price) }}
-                    {% else %}
-                        --
-                    {% endif %}
-                </h3>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Watched Items Table -->
 {% if watched_items %}
@@ -165,18 +122,8 @@
                                 <td>
                                     {% if item.last_price %}
                                         <span class="fw-bold text-success">${{ "%.2f"|format(item.last_price) }}</span>
-                                        <form method="post" action="/watchlists/{{ watchlist.id }}/items/{{ item.symbol }}/refresh-price" class="d-inline ms-2">
-                                            <button type="submit" class="btn btn-outline-primary btn-sm" title="Refresh Price">
-                                                <i class="bi bi-arrow-repeat"></i>
-                                            </button>
-                                        </form>
                                     {% else %}
                                         <span class="text-muted">--</span>
-                                        <form method="post" action="/watchlists/{{ watchlist.id }}/items/{{ item.symbol }}/refresh-price" class="d-inline ms-2">
-                                            <button type="submit" class="btn btn-primary btn-sm" title="Fetch Price">
-                                                <i class="bi bi-download"></i> Get Price
-                                            </button>
-                                        </form>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -190,6 +137,11 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="btn-group btn-group-sm">
+                                        <form method="post" action="/watchlists/{{ watchlist.id }}/items/{{ item.symbol }}/refresh-price" class="d-inline">
+                                            <button type="submit" class="btn btn-outline-primary btn-sm" title="Refresh Price">
+                                                <i class="bi bi-arrow-repeat"></i>
+                                            </button>
+                                        </form>
                                         <a href="/watchlists/{{ watchlist.id }}/items/{{ item.symbol }}/edit" 
                                            class="btn btn-outline-secondary btn-sm" title="Edit Notes">
                                             <i class="bi bi-pencil"></i>
