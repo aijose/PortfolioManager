@@ -1,6 +1,11 @@
 """FastAPI application for Portfolio Manager."""
 
+import os
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Depends, HTTPException, Form, UploadFile, File
+
+# Load environment variables from .env file
+load_dotenv()
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse

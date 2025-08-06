@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 
 from models.database import get_db
 from controllers.watchlist_controller import (
@@ -13,6 +14,8 @@ from controllers.watchlist_controller import (
     WatchlistCreate,
     WatchlistUpdate
 )
+from controllers.news_controller import NewsController
+from models.portfolio import WatchedItem
 
 router = APIRouter(prefix="/api/watchlists", tags=["watchlists"])
 
@@ -312,3 +315,83 @@ async def bulk_remove_items(
         "success": len(errors) == 0,
         "message": f"Removed {removed_count} out of {len(symbols)} symbols from watchlist"
     }
+
+
+# News endpoints
+@router.get("/{watchlist_id}/items/{symbol}/news")
+async def get_item_news(watchlist_id: int, symbol: str, db: Session = Depends(get_db)):
+    """Get news for a specific watched item."""
+    watchlist_controller = WatchlistController(db)
+    news_controller = NewsController()
+    
+    # Find the watched item
+    watched_item = db.query(WatchedItem).filter(
+        WatchedItem.watchlist_id == watchlist_id,
+        WatchedItem.symbol == symbol
+    ).first()
+    
+    if not watched_item:
+        raise HTTPException(status_code=404, detail="Watched item not found")
+    
+    # Get cached or fresh news
+    articles, was_fetched = news_controller.get_cached_or_fresh_news(
+        symbol, 
+        watched_item.last_news_update, 
+        watched_item.news_data
+    )
+    
+    # Update cache if we fetched fresh news
+    if was_fetched and articles:
+        watched_item.news_data = news_controller.format_news_for_storage(articles)
+        watched_item.last_news_update = datetime.utcnow()
+        db.commit()
+    
+    return {
+        "symbol": symbol,
+        "articles": [article.to_dict() for article in articles],
+        "cached": not was_fetched,
+        "last_updated": watched_item.last_news_update.isoformat() if watched_item.last_news_update else None,
+        "count": len(articles)
+    }
+
+
+@router.post("/{watchlist_id}/items/{symbol}/refresh-news")
+async def refresh_item_news(watchlist_id: int, symbol: str, db: Session = Depends(get_db)):
+    """Force refresh news for a specific watched item."""
+    watchlist_controller = WatchlistController(db)
+    news_controller = NewsController()
+    
+    # Find the watched item
+    watched_item = db.query(WatchedItem).filter(
+        WatchedItem.watchlist_id == watchlist_id,
+        WatchedItem.symbol == symbol
+    ).first()
+    
+    if not watched_item:
+        raise HTTPException(status_code=404, detail="Watched item not found")
+    
+    # Force fetch fresh news
+    articles = news_controller.get_ticker_news(symbol)
+    
+    # Update cache
+    if articles:
+        watched_item.news_data = news_controller.format_news_for_storage(articles)
+        watched_item.last_news_update = datetime.utcnow()
+        db.commit()
+        
+        return {
+            "symbol": symbol,
+            "articles": [article.to_dict() for article in articles],
+            "updated": True,
+            "last_updated": watched_item.last_news_update.isoformat(),
+            "count": len(articles),
+            "message": f"Refreshed {len(articles)} news articles for {symbol}"
+        }
+    else:
+        return {
+            "symbol": symbol,
+            "articles": [],
+            "updated": False,
+            "error": "No news found or API error",
+            "count": 0
+        }

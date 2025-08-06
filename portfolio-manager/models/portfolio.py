@@ -1,7 +1,7 @@
 """Portfolio, Holding, Watchlist, and WatchedItem database models."""
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from models.database import Base
 
@@ -95,6 +95,8 @@ class WatchedItem(Base):
     notes = Column(String(500), nullable=True)  # Optional notes about why tracking this stock
     last_price = Column(Float, nullable=True)  # Last fetched price
     added_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    news_data = Column(JSON, nullable=True)  # Cached news articles from Polygon.io
+    last_news_update = Column(DateTime, nullable=True)  # Last time news was fetched
     
     # Relationship to watchlist
     watchlist = relationship("Watchlist", back_populates="watched_items")
