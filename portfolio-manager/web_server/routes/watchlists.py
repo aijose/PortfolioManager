@@ -395,3 +395,39 @@ async def refresh_item_news(watchlist_id: int, symbol: str, db: Session = Depend
             "error": "No news found or API error",
             "count": 0
         }
+
+
+# Debug endpoint to test connectivity
+@router.get("/{watchlist_id}/items/{symbol}/test-news")
+async def test_news_endpoint(watchlist_id: int, symbol: str, db: Session = Depends(get_db)):
+    """Simple test endpoint to verify connectivity and data."""
+    # Find the watched item
+    watched_item = db.query(WatchedItem).filter(
+        WatchedItem.watchlist_id == watchlist_id,
+        WatchedItem.symbol == symbol
+    ).first()
+    
+    if not watched_item:
+        return {"error": "Watched item not found", "symbol": symbol, "watchlist_id": watchlist_id}
+    
+    # Return basic info and mock news
+    mock_articles = [
+        {
+            "title": f"Test News for {symbol}",
+            "url": "https://example.com/test",
+            "published_utc": "2025-01-06T15:00:00Z",
+            "source": "Test Source",
+            "summary": "This is a test article to verify the news system is working."
+        }
+    ]
+    
+    return {
+        "symbol": symbol,
+        "watchlist_id": watchlist_id,
+        "articles": mock_articles,
+        "cached": True,
+        "count": len(mock_articles),
+        "has_news_data": watched_item.news_data is not None,
+        "last_news_update": watched_item.last_news_update.isoformat() if watched_item.last_news_update else None,
+        "test": True
+    }
