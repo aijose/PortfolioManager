@@ -219,24 +219,6 @@
     </div>
 </div>
 
-<!-- Debug Panel -->
-<div class="card mt-3">
-    <div class="card-header">
-        <h6 class="mb-0">Debug Panel</h6>
-    </div>
-    <div class="card-body">
-        <button id="test-news-js" class="btn btn-warning btn-sm">Test News JavaScript</button>
-        <button id="toggle-debug-info" class="btn btn-info btn-sm">Show Debug Info</button>
-        <div id="debug-info" class="mt-2 p-2 bg-light rounded d-none">
-            <small>
-                <strong>Watched Items:</strong> {{ watched_items|length }}<br>
-                {% for item in watched_items %}
-                    <span class="badge bg-secondary me-1">{{ item.symbol }}</span>
-                {% endfor %}
-            </small>
-        </div>
-    </div>
-</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -258,8 +240,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Show the news row
                 newsRow.classList.remove('d-none');
                 
-                // Check if we already have content
-                if (newsContent.innerHTML.trim() === '') {
+                // Check if content is empty or just contains the placeholder comment
+                const currentContent = newsContent.innerHTML.trim();
+                const isEmpty = currentContent === '' || currentContent === '<!-- News articles will be loaded here -->';
+                
+                if (isEmpty) {
                     // Show loading spinner
                     newsLoading.classList.remove('d-none');
                     
@@ -403,41 +388,6 @@ document.addEventListener('DOMContentLoaded', function() {
         container.innerHTML = html;
     }
     
-    // Debug button handlers
-    document.getElementById('test-news-js').addEventListener('click', function() {
-        console.log('Testing news JavaScript directly...');
-        const firstSymbol = document.querySelector('[data-symbol]');
-        if (firstSymbol) {
-            const symbol = firstSymbol.dataset.symbol;
-            const newsRow = document.getElementById(`news-${symbol}`);
-            const newsContent = newsRow.querySelector('.news-content');
-            
-            // Force show news row
-            newsRow.classList.remove('d-none');
-            
-            // Create test data
-            const testData = {
-                articles: [{
-                    title: `Direct Test News for ${symbol}`,
-                    url: 'https://example.com/test',
-                    published_utc: '2025-01-06T15:00:00Z',
-                    source: 'Debug Test',
-                    summary: 'This is a direct JavaScript test to verify the news rendering works.'
-                }],
-                cached: false,
-                last_updated: new Date().toISOString()
-            };
-            
-            renderNews(newsContent, testData.articles, testData.cached, testData.last_updated);
-            console.log('Test news rendered successfully');
-            alert(`Test news rendered for ${symbol}! Check the expandable row.`);
-        }
-    });
-    
-    document.getElementById('toggle-debug-info').addEventListener('click', function() {
-        const debugInfo = document.getElementById('debug-info');
-        debugInfo.classList.toggle('d-none');
-    });
 });
 </script>
 {% endblock %}
