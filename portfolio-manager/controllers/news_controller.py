@@ -1,4 +1,4 @@
-"""News controller for fetching stock news from Polygon.io API."""
+"""Multi-source news controller for fetching stock news with intelligent fallback."""
 
 import os
 import time
@@ -6,7 +6,6 @@ from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 import logging
 from dataclasses import dataclass
-from polygon import RESTClient
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -34,152 +33,267 @@ class NewsArticle:
 
 
 class NewsController:
-    """Controller for fetching and caching stock news from Polygon.io."""
+    """Multi-source news controller with intelligent fallback between APIs."""
     
     def __init__(self):
-        """Initialize the news controller with Polygon.io client."""
-        self.api_key = os.environ.get('POLYGON_API_KEY')
-        if not self.api_key:
-            logger.warning("POLYGON_API_KEY not found in environment variables")
-            self.client = None
-        else:
-            self.client = RESTClient(self.api_key)
+        """Initialize the multi-source news controller."""
+        # Initialize all news sources
+        self._init_sources()
         
-        # Cache settings - 4 hours to respect 5 calls/min rate limit
+        # Cache settings
         self.cache_duration = timedelta(hours=4)
         self.max_articles_per_symbol = 5
-        
-        # Rate limiting - Polygon.io free tier: 5 calls/minute
-        self.last_request_time = 0
-        self.min_request_interval = 15  # 15 seconds between requests (4/minute max)
-        self.request_times = []
     
-    def _can_make_request(self) -> bool:
-        """Check if we can make a request without hitting rate limits."""
-        now = time.time()
+    def _init_sources(self):
+        """Initialize all available news sources."""
+        self.sources = []
         
-        # Clean old request times (older than 1 minute)
-        self.request_times = [t for t in self.request_times if now - t < 60]
+        # 1. Polygon.io (primary source)
+        self._init_polygon_source()
         
-        # Check if we've made too many requests in the last minute
-        if len(self.request_times) >= 4:  # Stay under 5/minute limit
-            logger.warning("Rate limit approached - deferring API request")
-            return False
+        # 2. Yahoo Finance (first fallback)
+        self._init_yahoo_source()
         
-        # Check minimum interval between requests
-        if now - self.last_request_time < self.min_request_interval:
-            wait_time = self.min_request_interval - (now - self.last_request_time)
-            logger.info(f"Waiting {wait_time:.1f}s to respect rate limits")
-            time.sleep(wait_time)
+        # 3. Mock data (last resort)
+        self._init_mock_source()
         
-        return True
+        logger.info(f"Initialized {len(self.sources)} news sources")
     
-    def _record_request(self):
-        """Record that we made a request."""
-        now = time.time()
-        self.last_request_time = now
-        self.request_times.append(now)
+    def _init_polygon_source(self):
+        """Initialize Polygon.io source."""
+        api_key = os.environ.get('POLYGON_API_KEY')
+        if api_key:
+            try:
+                from polygon import RESTClient
+                client = RESTClient(api_key)
+                
+                # Polygon source with rate limiting
+                source = {
+                    'name': 'Polygon.io',
+                    'client': client,
+                    'last_request_time': 0,
+                    'min_interval': 15,
+                    'request_times': [],
+                    'active': True
+                }
+                self.sources.append(source)
+                logger.info("✅ Polygon.io source initialized")
+            except ImportError:
+                logger.warning("❌ Polygon.io client not available (import error)")
+        else:
+            logger.warning("❌ Polygon.io source not available (no API key)")
+    
+    def _init_yahoo_source(self):
+        """Initialize Yahoo Finance source."""
+        try:
+            import yfinance as yf
+            source = {
+                'name': 'Yahoo Finance',
+                'yf': yf,
+                'last_request_time': 0,
+                'min_interval': 2,
+                'active': True
+            }
+            self.sources.append(source)
+            logger.info("✅ Yahoo Finance source initialized")
+        except ImportError:
+            logger.warning("❌ Yahoo Finance source not available (yfinance not installed)")
+    
+    def _init_mock_source(self):
+        """Initialize mock data source."""
+        source = {
+            'name': 'Mock Data',
+            'active': True
+        }
+        self.sources.append(source)
+        logger.info("✅ Mock data source initialized")
     
     def get_ticker_news(self, symbol: str, limit: int = 5) -> List[NewsArticle]:
         """
-        Fetch news articles for a specific ticker symbol.
+        Fetch news articles from multiple sources with intelligent fallback.
         
         Args:
             symbol: Stock ticker symbol (e.g., 'AAPL')
             limit: Maximum number of articles to return
             
         Returns:
-            List of NewsArticle objects
+            List of NewsArticle objects from the first successful source
         """
-        if not self.client:
-            logger.error("Polygon.io client not initialized - missing API key")
+        logger.info(f"Getting news for {symbol} from {len(self.sources)} potential sources")
+        
+        for source in self.sources:
+            if not source.get('active', True):
+                continue
+                
+            try:
+                articles = self._get_news_from_source(source, symbol, limit)
+                
+                if articles:
+                    logger.info(f"✅ Got {len(articles)} articles from {source['name']}")
+                    return articles
+                else:
+                    logger.info(f"⚠️  No articles from {source['name']}, trying next source")
+                    
+            except Exception as e:
+                logger.error(f"❌ {source['name']} failed: {e}")
+                continue
+        
+        logger.warning(f"❌ All news sources failed for {symbol}")
+        return []
+    
+    def _get_news_from_source(self, source: dict, symbol: str, limit: int) -> List[NewsArticle]:
+        """Get news from a specific source."""
+        source_name = source['name']
+        
+        if source_name == 'Polygon.io':
+            return self._get_polygon_news(source, symbol, limit)
+        elif source_name == 'Yahoo Finance':
+            return self._get_yahoo_news(source, symbol, limit)
+        elif source_name == 'Mock Data':
+            return self._get_mock_news(symbol, limit)
+        else:
+            logger.warning(f"Unknown source: {source_name}")
+            return []
+    
+    def _get_polygon_news(self, source: dict, symbol: str, limit: int) -> List[NewsArticle]:
+        """Get news from Polygon.io with rate limiting."""
+        client = source['client']
+        
+        # Rate limiting check
+        now = time.time()
+        source['request_times'] = [t for t in source.get('request_times', []) if now - t < 60]
+        
+        if len(source['request_times']) >= 4:
+            logger.warning(f"[Polygon.io] Rate limit approached - skipping")
             return []
         
-        # Check if we can make a request without hitting rate limits
-        if not self._can_make_request():
-            logger.warning(f"Rate limited - returning mock data for {symbol}")
-            return self._get_mock_news(symbol, limit)
+        if now - source.get('last_request_time', 0) < source['min_interval']:
+            wait_time = source['min_interval'] - (now - source['last_request_time'])
+            logger.info(f"[Polygon.io] Waiting {wait_time:.1f}s for rate limiting")
+            time.sleep(wait_time)
         
         try:
-            # Record this request
-            self._record_request()
+            # Record request
+            source['last_request_time'] = now
+            source['request_times'] = source.get('request_times', []) + [now]
             
-            # Fetch news from Polygon.io
-            logger.info(f"Fetching news for {symbol} from Polygon.io")
+            logger.info(f"[Polygon.io] Fetching news for {symbol}")
             
-            # Get news articles for the ticker
-            news_response = self.client.list_ticker_news(
+            news_response = client.list_ticker_news(
                 ticker=symbol,
                 limit=limit,
-                order="desc"  # Most recent first
+                order="desc"
             )
             
             articles = []
             for article_data in news_response:
                 try:
-                    # Extract publisher name safely
                     source_name = 'Unknown'
                     if hasattr(article_data, 'publisher') and article_data.publisher:
                         if hasattr(article_data.publisher, 'name'):
                             source_name = article_data.publisher.name
-                        elif isinstance(article_data.publisher, dict):
-                            source_name = article_data.publisher.get('name', 'Unknown')
                     
                     article = NewsArticle(
                         title=getattr(article_data, 'title', 'No title'),
                         url=getattr(article_data, 'article_url', ''),
                         published_utc=getattr(article_data, 'published_utc', ''),
                         source=source_name,
-                        summary=getattr(article_data, 'description', None)
+                        summary=getattr(article_data, 'description', '')[:200] if hasattr(article_data, 'description') else None
                     )
                     articles.append(article)
                 except Exception as e:
-                    logger.warning(f"Error parsing article for {symbol}: {e}")
+                    logger.error(f"[Polygon.io] Error processing article: {e}")
                     continue
             
-            logger.info(f"Successfully fetched {len(articles)} articles for {symbol}")
             return articles
             
         except Exception as e:
-            logger.error(f"Error fetching news for {symbol}: {e}")
-            
-            # If we get rate limited, increase delays for future requests
             if "429" in str(e) or "rate" in str(e).lower():
-                logger.warning("Rate limited by Polygon.io - increasing delays")
-                self.min_request_interval = min(30, self.min_request_interval * 1.5)
+                logger.warning(f"[Polygon.io] Rate limited - increasing delays")
+                source['min_interval'] = min(30, source['min_interval'] * 1.5)
             
-            # Return mock data as fallback
-            return self._get_mock_news(symbol, limit)
+            logger.error(f"[Polygon.io] Error: {e}")
+            return []
+    
+    def _get_yahoo_news(self, source: dict, symbol: str, limit: int) -> List[NewsArticle]:
+        """Get news from Yahoo Finance."""
+        yf = source['yf']
+        
+        # Basic rate limiting
+        now = time.time()
+        if now - source.get('last_request_time', 0) < source['min_interval']:
+            wait_time = source['min_interval'] - (now - source['last_request_time'])
+            time.sleep(wait_time)
+        
+        try:
+            source['last_request_time'] = now
+            logger.info(f"[Yahoo Finance] Fetching news for {symbol}")
+            
+            ticker = yf.Ticker(symbol)
+            news_data = ticker.news
+            
+            articles = []
+            for item in news_data[:limit]:
+                try:
+                    content = item.get('content', {})
+                    
+                    pub_date = content.get('pubDate', '')
+                    if not pub_date:
+                        pub_date = datetime.utcnow().isoformat() + 'Z'
+                    
+                    provider = content.get('provider', {})
+                    source_name = provider.get('displayName', 'Yahoo Finance')
+                    
+                    canonical_url = content.get('canonicalUrl', {})
+                    url = canonical_url.get('url', '') if canonical_url else ''
+                    
+                    article = NewsArticle(
+                        title=content.get('title', 'No title'),
+                        url=url,
+                        published_utc=pub_date,
+                        source=source_name,
+                        summary=content.get('summary', '')[:200] if content.get('summary') else None
+                    )
+                    articles.append(article)
+                except Exception as e:
+                    logger.error(f"[Yahoo Finance] Error processing article: {e}")
+                    continue
+            
+            return articles
+            
+        except Exception as e:
+            logger.error(f"[Yahoo Finance] Error: {e}")
+            return []
     
     def _get_mock_news(self, symbol: str, limit: int = 5) -> List[NewsArticle]:
-        """Generate mock news data when API is unavailable or rate limited."""
+        """Generate mock news data when APIs are unavailable."""
         
-        # Return empty for crypto and less common symbols
+        # Return empty for crypto and uncommon symbols  
         if symbol in ['BTC-USD', 'PSLV', 'GOLD', 'SLV', 'ETH-USD']:
-            logger.info(f"No mock news available for {symbol}")
+            logger.info(f"[Mock Data] No mock news for {symbol}")
             return []
         
-        # Mock data for major stocks
         mock_articles = [
             NewsArticle(
                 title=f'{symbol} Earnings Report Shows Strong Performance',
                 url='https://example.com/news/1',
                 published_utc='2025-01-06T14:30:00Z',
-                source='Financial Times',
+                source='Financial Times (Mock)',
                 summary=f'Latest earnings report for {symbol} shows strong performance across key metrics.'
             ),
             NewsArticle(
                 title=f'Technical Analysis: {symbol} Shows Bullish Patterns',
                 url='https://example.com/news/2',
                 published_utc='2025-01-06T13:15:00Z',
-                source='MarketWatch',
+                source='MarketWatch (Mock)',
                 summary='Technical indicators suggest positive momentum for this stock.'
             )
         ]
         
-        logger.info(f"Returning {min(len(mock_articles), limit)} mock articles for {symbol}")
+        logger.info(f"[Mock Data] Generated {min(len(mock_articles), limit)} mock articles for {symbol}")
         return mock_articles[:limit]
     
+    # Keep existing cache methods for compatibility
     def is_news_cache_valid(self, last_update: Optional[datetime]) -> bool:
         """Check if cached news is still valid (within cache duration)."""
         if not last_update:
@@ -206,11 +320,11 @@ class NewsController:
                     url=article_dict.get('url', ''),
                     published_utc=article_dict.get('published_utc', ''),
                     source=article_dict.get('source', 'Unknown'),
-                    summary=article_dict.get('summary', '')
+                    summary=article_dict.get('summary')
                 )
                 articles.append(article)
             except Exception as e:
-                logger.warning(f"Error parsing stored article: {e}")
+                logger.error(f"Error parsing stored article: {e}")
                 continue
         
         return articles
@@ -244,37 +358,42 @@ class NewsController:
         Returns:
             Dictionary mapping symbols to their news articles
         """
-        if not self.client:
-            logger.error("Polygon.io client not initialized")
-            return {}
-        
         results = {}
         
-        # Rate limiting: 5 calls per minute max
-        calls_made = 0
-        start_time = time.time()
-        
         for symbol in symbols:
-            if calls_made >= 5:
-                # Wait for next minute if we've made 5 calls
-                elapsed = time.time() - start_time
-                if elapsed < 60:
-                    wait_time = 60 - elapsed
-                    logger.info(f"Rate limiting: waiting {wait_time:.1f} seconds")
-                    time.sleep(wait_time)
-                    start_time = time.time()
-                    calls_made = 0
-            
             try:
                 articles = self.get_ticker_news(symbol, self.max_articles_per_symbol)
                 results[symbol] = articles
-                calls_made += 1
                 
-                # Small delay between calls to be respectful
-                time.sleep(0.5)
+                # Small delay between symbols to be respectful
+                time.sleep(1)
                 
             except Exception as e:
                 logger.error(f"Error fetching news for {symbol}: {e}")
                 results[symbol] = []
         
         return results
+
+
+# Test the multi-source controller
+if __name__ == "__main__":
+    print("🧪 TESTING MULTI-SOURCE NEWS CONTROLLER")
+    print("=" * 50)
+    
+    controller = NewsController()
+    
+    # Test with different symbols
+    test_symbols = ['AAPL', 'MSFT', 'BTC-USD', 'PSLV']
+    
+    for symbol in test_symbols:
+        print(f"\n📰 Testing {symbol}...")
+        articles = controller.get_ticker_news(symbol, limit=3)
+        
+        if articles:
+            print(f"✅ Got {len(articles)} articles:")
+            for i, article in enumerate(articles, 1):
+                print(f"   {i}. {article.title[:60]}... (Source: {article.source})")
+        else:
+            print(f"❌ No articles found for {symbol}")
+    
+    print("\n🎯 Multi-source controller test complete!")
