@@ -291,20 +291,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     const apiUrl = `/api/watchlists/${watchlistId}/items/${symbol}/news`;
                     console.log('Fetching news from:', apiUrl);
                     
-                    // Try to fetch from API, but always fall back to mock data if it fails
+                    // Try to fetch from API with short timeout, fallback to mock data
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+                    
                     fetch(apiUrl, { 
                         method: 'GET',
                         headers: {
                             'Accept': 'application/json',
                             'Content-Type': 'application/json'
-                        }
+                        },
+                        signal: controller.signal
                     })
                         .then(response => {
+                            clearTimeout(timeoutId);
                             console.log('Response status:', response.status);
                             if (response.ok) {
                                 return response.json();
                             } else {
-                                console.log('API call failed, using mock data');
+                                console.log('API call failed with status', response.status, '- using mock data');
                                 return mockData;
                             }
                         })
@@ -324,8 +329,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         })
                         .catch(error => {
+                            clearTimeout(timeoutId);
                             console.error('Error fetching news:', error);
-                            console.log('Network error, using mock data as fallback');
+                            console.log('Network error (timeout/connection failed), using mock data as fallback');
                             newsLoading.classList.add('d-none');
                             
                             // Use mock data as fallback for network errors
