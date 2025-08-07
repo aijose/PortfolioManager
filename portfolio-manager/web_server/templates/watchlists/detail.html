@@ -96,11 +96,16 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Watched Stocks</h5>
-            <form method="post" action="/watchlists/{{ watchlist.id }}/refresh-prices" class="d-inline">
-                <button type="submit" class="btn btn-outline-primary btn-sm">
-                    <i class="bi bi-arrow-repeat"></i> Refresh All
+            <div class="btn-group">
+                <form method="post" action="/watchlists/{{ watchlist.id }}/refresh-prices" class="d-inline">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-arrow-repeat"></i> Refresh All Prices
+                    </button>
+                </form>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="expand-all-news">
+                    <i class="bi bi-chevron-down"></i> Expand All News
                 </button>
-            </form>
+            </div>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -222,6 +227,50 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Handle expand/collapse all news button
+    let allExpanded = false;
+    const expandAllBtn = document.getElementById('expand-all-news');
+    
+    if (expandAllBtn) {
+        expandAllBtn.addEventListener('click', function() {
+            const newsToggles = document.querySelectorAll('.news-toggle');
+            
+            if (!allExpanded) {
+                // Expand all news sections
+                newsToggles.forEach(button => {
+                    const symbol = button.dataset.symbol;
+                    const newsRow = document.getElementById(`news-${symbol}`);
+                    
+                    if (newsRow.classList.contains('d-none')) {
+                        button.click(); // Trigger the existing click handler
+                    }
+                });
+                
+                // Update button state
+                expandAllBtn.innerHTML = '<i class="bi bi-chevron-up"></i> Collapse All News';
+                expandAllBtn.classList.remove('btn-outline-secondary');
+                expandAllBtn.classList.add('btn-outline-primary');
+                allExpanded = true;
+            } else {
+                // Collapse all news sections
+                newsToggles.forEach(button => {
+                    const symbol = button.dataset.symbol;
+                    const newsRow = document.getElementById(`news-${symbol}`);
+                    
+                    if (!newsRow.classList.contains('d-none')) {
+                        button.click(); // Trigger the existing click handler
+                    }
+                });
+                
+                // Update button state
+                expandAllBtn.innerHTML = '<i class="bi bi-chevron-down"></i> Expand All News';
+                expandAllBtn.classList.remove('btn-outline-primary');
+                expandAllBtn.classList.add('btn-outline-secondary');
+                allExpanded = false;
+            }
+        });
+    }
+
     // Handle news toggle buttons
     document.querySelectorAll('.news-toggle').forEach(button => {
         button.addEventListener('click', function(e) {
