@@ -28,24 +28,7 @@
     </div>
 {% endif %}
 
-{% if request.query_params.get('refreshed') %}
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-arrow-repeat"></i>
-        Successfully updated {{ request.query_params.get('refreshed') }} prices.
-        {% if request.query_params.get('failed') and request.query_params.get('failed') != '0' %}
-            {{ request.query_params.get('failed') }} symbols failed to update.
-        {% endif %}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-{% endif %}
 
-{% if request.query_params.get('price_updated') %}
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-arrow-repeat"></i>
-        Updated {{ request.query_params.get('price_updated') }} price to ${{ request.query_params.get('new_price') }}.
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-{% endif %}
 
 {% if request.query_params.get('renamed') %}
     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -101,7 +84,7 @@
                 <a href="/watchlists/{{ watchlist.id }}/items/new" class="btn btn-light btn-sm">
                     <i class="bi bi-plus-circle me-1"></i>Add Stock
                 </a>
-                <form method="post" action="/watchlists/{{ watchlist.id }}/refresh-prices" class="d-inline">
+                <form method="post" action="/watchlists/{{ watchlist.id }}/refresh-prices" class="d-inline refresh-form">
                     <button type="submit" class="btn btn-light btn-sm">
                         <i class="bi bi-arrow-repeat me-1"></i>Refresh All Prices
                     </button>
@@ -156,7 +139,7 @@
                                                 title="Load news for {{ item.symbol }}">
                                             <i class="bi bi-newspaper"></i>
                                         </button>
-                                        <form method="post" action="/watchlists/{{ watchlist.id }}/items/{{ item.symbol }}/refresh-price" class="d-inline">
+                                        <form method="post" action="/watchlists/{{ watchlist.id }}/items/{{ item.symbol }}/refresh-price" class="d-inline refresh-form">
                                             <button type="submit" class="btn btn-outline-primary btn-sm" title="Refresh Price">
                                                 <i class="bi bi-arrow-repeat"></i>
                                             </button>
@@ -255,6 +238,80 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Handle refresh forms with AJAX to prevent page reload
+    document.querySelectorAll('.refresh-form').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const button = form.querySelector('button[type="submit"]');
+            const originalHTML = button.innerHTML;
+            const action = form.action;
+            
+            // Show loading state
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Updating...';
+            
+            // Perform AJAX request
+            fetch(action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.text();
+                } else {
+                    throw new Error('Price refresh failed');
+                }
+            })
+            .then(html => {
+                // Parse response to extract updated prices
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Update prices without affecting layout
+                const currentRows = document.querySelectorAll('.stock-row, .draggable-row');
+                const newRows = doc.querySelectorAll('.stock-row, .draggable-row');
+                
+                currentRows.forEach((currentRow, index) => {
+                    const newRow = newRows[index];
+                    if (newRow) {
+                        const symbol = currentRow.dataset.symbol;
+                        
+                        // Find price cell (3rd column in watchlist)
+                        const currentPriceCell = currentRow.children[2];
+                        const newPriceCell = newRow.children[2];
+                        
+                        if (currentPriceCell && newPriceCell && 
+                            currentPriceCell.innerHTML !== newPriceCell.innerHTML) {
+                            
+                            // Smoothly update price without layout shift
+                            currentPriceCell.style.transition = 'color 0.3s ease';
+                            currentPriceCell.innerHTML = newPriceCell.innerHTML;
+                            
+                            // Brief highlight to show update
+                            currentPriceCell.style.backgroundColor = 'rgba(72, 187, 120, 0.2)';
+                            setTimeout(() => {
+                                currentPriceCell.style.backgroundColor = '';
+                            }, 1000);
+                        }
+                    }
+                });
+                
+                // Reset button state
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+                console.log('Prices updated successfully');
+            })
+            .catch(error => {
+                console.error('Price refresh error:', error);
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            });
+        });
+    });
+
     // Handle expand/collapse all news button
     let allExpanded = false;
     const expandAllBtn = document.getElementById('expand-all-news');

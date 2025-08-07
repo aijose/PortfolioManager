@@ -36,24 +36,7 @@
     </div>
 {% endif %}
 
-{% if request.query_params.get('refreshed') %}
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-arrow-repeat"></i>
-        Successfully updated {{ request.query_params.get('refreshed') }} prices.
-        {% if request.query_params.get('failed') and request.query_params.get('failed') != '0' %}
-            {{ request.query_params.get('failed') }} symbols failed to update.
-        {% endif %}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-{% endif %}
 
-{% if request.query_params.get('price_updated') %}
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-currency-dollar"></i>
-        Updated {{ request.query_params.get('price_updated') }} price to ${{ request.query_params.get('new_price') }}.
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-{% endif %}
 
 {% if request.query_params.get('error') %}
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -172,7 +155,7 @@
         <h5 class="mb-0">Holdings</h5>
         <div class="btn-group" role="group">
             {% if holdings %}
-                <form method="post" action="/portfolios/{{ portfolio.id }}/refresh-prices" class="d-inline">
+                <form method="post" action="/portfolios/{{ portfolio.id }}/refresh-prices" class="d-inline refresh-form">
                     <button type="submit" class="btn btn-outline-success btn-sm" title="Refresh all prices">
                         <i class="bi bi-arrow-repeat"></i> Refresh Prices
                     </button>
@@ -241,7 +224,7 @@
                                     <div class="btn-group" role="group">
                                         <form method="post" 
                                               action="/portfolios/{{ portfolio.id }}/holdings/{{ holding.symbol }}/refresh-price" 
-                                              class="d-inline">
+                                              class="d-inline refresh-form">
                                             <button type="submit" 
                                                     class="btn btn-outline-info btn-sm" 
                                                     title="Refresh price for {{ holding.symbol }}">
@@ -323,47 +306,126 @@
 {% block extra_scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Add loading indicators to price refresh buttons
-    function addLoadingIndicator(button, originalText) {
-        button.disabled = true;
-        const spinner = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>';
-        button.innerHTML = spinner + 'Updating...';
-    }
-    
-    function removeLoadingIndicator(button, originalText) {
-        button.disabled = false;
-        button.innerHTML = originalText;
-    }
-    
-    // Handle individual price refresh buttons
-    document.querySelectorAll('form[action*="/refresh-price"] button').forEach(function(button) {
-        const form = button.closest('form');
-        const originalHTML = button.innerHTML;
-        
+    // Handle refresh forms with AJAX to prevent page reload
+    document.querySelectorAll('.refresh-form').forEach(function(form) {
         form.addEventListener('submit', function(e) {
-            addLoadingIndicator(button, originalHTML);
+            e.preventDefault();
+            
+            const button = form.querySelector('button[type="submit"]');
+            const originalHTML = button.innerHTML;
+            const action = form.action;
+            
+            // Show loading state
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Updating...';
+            
+            // Perform AJAX request
+            fetch(action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.text();
+                } else {
+                    throw new Error('Price refresh failed');
+                }
+            })
+            .then(html => {
+                // Parse response to extract updated data
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Update portfolio summary cards
+                const summaryCards = document.querySelectorAll('.card-body h4.card-title');
+                const newSummaryCards = doc.querySelectorAll('.card-body h4.card-title');
+                
+                summaryCards.forEach((currentCard, index) => {
+                    const newCard = newSummaryCards[index];
+                    if (newCard && currentCard.innerHTML !== newCard.innerHTML) {
+                        currentCard.style.transition = 'color 0.3s ease';
+                        currentCard.innerHTML = newCard.innerHTML;
+                        
+                        // Brief highlight for updated values
+                        currentCard.style.backgroundColor = 'rgba(72, 187, 120, 0.2)';
+                        setTimeout(() => {
+                            currentCard.style.backgroundColor = '';
+                        }, 1000);
+                    }
+                });
+                
+                // Update holdings table prices and values
+                const currentRows = document.querySelectorAll('.table tbody tr');
+                const newRows = doc.querySelectorAll('.table tbody tr');
+                
+                currentRows.forEach((currentRow, index) => {
+                    const newRow = newRows[index];
+                    if (newRow) {
+                        // Update Last Price (5th column - index 4)
+                        const currentPriceCell = currentRow.children[4];
+                        const newPriceCell = newRow.children[4];
+                        
+                        if (currentPriceCell && newPriceCell && 
+                            currentPriceCell.innerHTML !== newPriceCell.innerHTML) {
+                            
+                            currentPriceCell.style.transition = 'color 0.3s ease';
+                            currentPriceCell.innerHTML = newPriceCell.innerHTML;
+                            currentPriceCell.style.backgroundColor = 'rgba(72, 187, 120, 0.2)';
+                            setTimeout(() => {
+                                currentPriceCell.style.backgroundColor = '';
+                            }, 1000);
+                        }
+                        
+                        // Update Current Value (6th column - index 5)
+                        const currentValueCell = currentRow.children[5];
+                        const newValueCell = newRow.children[5];
+                        
+                        if (currentValueCell && newValueCell && 
+                            currentValueCell.innerHTML !== newValueCell.innerHTML) {
+                            
+                            currentValueCell.style.transition = 'color 0.3s ease';
+                            currentValueCell.innerHTML = newValueCell.innerHTML;
+                            currentValueCell.style.backgroundColor = 'rgba(72, 187, 120, 0.2)';
+                            setTimeout(() => {
+                                currentValueCell.style.backgroundColor = '';
+                            }, 1000);
+                        }
+                        
+                        // Update Current % (4th column - index 3)
+                        const currentPercentCell = currentRow.children[3];
+                        const newPercentCell = newRow.children[3];
+                        
+                        if (currentPercentCell && newPercentCell && 
+                            currentPercentCell.innerHTML !== newPercentCell.innerHTML) {
+                            
+                            currentPercentCell.style.transition = 'color 0.3s ease';
+                            currentPercentCell.innerHTML = newPercentCell.innerHTML;
+                            currentPercentCell.style.backgroundColor = 'rgba(72, 187, 120, 0.2)';
+                            setTimeout(() => {
+                                currentPercentCell.style.backgroundColor = '';
+                            }, 1000);
+                        }
+                    }
+                });
+                
+                // Reset button state
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+                console.log('Portfolio data updated successfully');
+            })
+            .catch(error => {
+                console.error('Price refresh error:', error);
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            });
         });
     });
+
+    // Legacy individual refresh code removed - now handled by AJAX refresh-form handler above
     
-    // Handle bulk price refresh button
-    const bulkRefreshForm = document.querySelector('form[action*="/refresh-prices"]');
-    if (bulkRefreshForm) {
-        const button = bulkRefreshForm.querySelector('button');
-        const originalHTML = button.innerHTML;
-        
-        bulkRefreshForm.addEventListener('submit', function(e) {
-            addLoadingIndicator(button, originalHTML);
-            
-            // Show progress message
-            const cardHeader = document.querySelector('.card-header');
-            if (cardHeader) {
-                const progressDiv = document.createElement('div');
-                progressDiv.className = 'alert alert-info mt-2 mb-0';
-                progressDiv.innerHTML = '<i class="bi bi-arrow-repeat"></i> Updating prices for all holdings...';
-                cardHeader.appendChild(progressDiv);
-            }
-        });
-    }
+    // Legacy bulk refresh code removed - now handled by AJAX refresh-form handler above
     
     // Auto-dismiss alerts after 5 seconds
     document.querySelectorAll('.alert-dismissible').forEach(function(alert) {

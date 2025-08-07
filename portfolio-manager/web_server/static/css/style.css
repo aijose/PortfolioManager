@@ -403,6 +403,37 @@ h4.card-title {
     transform: translateY(-1px);
 }
 
+.btn-outline-success {
+    border: 2px solid var(--success-color) !important;
+    color: var(--success-color) !important;
+    background: transparent;
+    font-weight: 600;
+}
+
+.btn-outline-success:hover {
+    background: var(--success-color) !important;
+    color: white !important;
+    border-color: var(--success-color) !important;
+    transform: translateY(-1px);
+}
+
+.btn-outline-success:focus {
+    background: var(--success-color) !important;
+    color: white !important;
+    border-color: var(--success-color) !important;
+    box-shadow: 0 0 0 0.2rem rgba(72, 187, 120, 0.25);
+}
+
+.btn-outline-success:disabled {
+    border: 2px solid #cbd5e0 !important;
+    color: #a0aec0 !important;
+    background: transparent !important;
+}
+
+.btn-outline-success:disabled:hover {
+    transform: none !important;
+}
+
 .btn-lg {
     padding: 1rem 2rem;
     font-size: 1.125rem;
