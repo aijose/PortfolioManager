@@ -137,11 +137,17 @@ class WatchlistController:
         price_data = self.stock_data_controller.get_stock_price(watched_item.symbol, use_cache=True)
         current_price = price_data.price if price_data else None
         
+        # Set order_index to the next available position
+        max_order = self.db.query(WatchedItem).filter(
+            WatchedItem.watchlist_id == watchlist_id
+        ).count()
+        
         db_watched_item = WatchedItem(
             watchlist_id=watchlist_id,
             symbol=watched_item.symbol,
             notes=watched_item.notes,
-            last_price=current_price
+            last_price=current_price,
+            order_index=max_order
         )
         self.db.add(db_watched_item)
         self.db.commit()
@@ -149,10 +155,10 @@ class WatchlistController:
         return db_watched_item
     
     def get_watchlist_items(self, watchlist_id: int) -> List[WatchedItem]:
-        """Get all watched items for a watchlist."""
+        """Get all watched items for a watchlist, ordered by order_index."""
         return self.db.query(WatchedItem).filter(
             WatchedItem.watchlist_id == watchlist_id
-        ).order_by(WatchedItem.symbol).all()
+        ).order_by(WatchedItem.order_index, WatchedItem.symbol).all()
     
     def update_watched_item(self, watchlist_id: int, symbol: str, watched_item: WatchedItemUpdate) -> Optional[WatchedItem]:
         """Update an existing watched item."""
@@ -321,3 +327,44 @@ class WatchlistController:
             }
             for item in watched_items
         ]
+    
+    def reorder_watchlist_items(self, watchlist_id: int, symbol_order: List[str]) -> bool:
+        """
+        Reorder watched items in a watchlist based on provided symbol order.
+        
+        Args:
+            watchlist_id: The watchlist ID
+            symbol_order: List of symbols in their desired order
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Get all watched items for this watchlist
+            watched_items = self.get_watchlist_items(watchlist_id)
+            item_dict = {item.symbol: item for item in watched_items}
+            
+            # Validate that all symbols in the order exist in the watchlist
+            watchlist_symbols = set(item_dict.keys())
+            order_symbols = set(symbol_order)
+            
+            if watchlist_symbols != order_symbols:
+                missing_in_order = watchlist_symbols - order_symbols
+                extra_in_order = order_symbols - watchlist_symbols
+                error_msg = []
+                if missing_in_order:
+                    error_msg.append(f"Missing symbols in order: {missing_in_order}")
+                if extra_in_order:
+                    error_msg.append(f"Extra symbols in order: {extra_in_order}")
+                raise ValueError("; ".join(error_msg))
+            
+            # Update order_index for each item
+            for index, symbol in enumerate(symbol_order):
+                item_dict[symbol].order_index = index
+            
+            self.db.commit()
+            return True
+            
+        except Exception as e:
+            self.db.rollback()
+            raise ValueError(f"Failed to reorder items: {str(e)}")

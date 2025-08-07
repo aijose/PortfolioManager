@@ -112,6 +112,7 @@
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
+                            <th width="30"></th>
                             <th>Symbol</th>
                             <th>Current Price</th>
                             <th>Notes</th>
@@ -120,7 +121,10 @@
                     </thead>
                     <tbody>
                         {% for item in watched_items %}
-                            <tr class="stock-row" data-symbol="{{ item.symbol }}">
+                            <tr class="stock-row draggable-row" data-symbol="{{ item.symbol }}" draggable="true">
+                                <td class="drag-handle">
+                                    <i class="bi bi-grip-vertical text-muted" style="cursor: move;" title="Drag to reorder"></i>
+                                </td>
                                 <td>
                                     <strong class="text-primary">{{ item.symbol }}</strong>
                                     <button class="btn btn-sm btn-outline-secondary ms-2 news-toggle" 
@@ -169,7 +173,7 @@
                             </tr>
                             <!-- Hidden expandable news row -->
                             <tr class="news-row d-none" id="news-{{ item.symbol }}">
-                                <td colspan="4" class="p-0">
+                                <td colspan="5" class="p-0">
                                     <div class="news-container p-3 bg-light border-top">
                                         <div class="news-loading d-none">
                                             <div class="d-flex align-items-center">
@@ -225,6 +229,45 @@
 </div>
 
 
+<style>
+.draggable-row {
+    transition: background-color 0.2s ease;
+}
+
+.draggable-row.drag-over {
+    background-color: #f8f9fa;
+    border-top: 2px solid #007bff;
+}
+
+.draggable-row.dragging {
+    opacity: 0.5;
+}
+
+.drag-handle {
+    width: 30px;
+    text-align: center;
+    vertical-align: middle;
+    padding: 8px 4px;
+}
+
+.drag-handle i {
+    font-size: 16px;
+    cursor: grab;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.drag-handle:hover i {
+    background-color: #f8f9fa;
+    color: #007bff;
+}
+
+.drag-handle i:active {
+    cursor: grabbing;
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Handle expand/collapse all news button
@@ -233,6 +276,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (expandAllBtn) {
         expandAllBtn.addEventListener('click', function() {
+            // Re-query news toggles each time to handle reordering
             const newsToggles = document.querySelectorAll('.news-toggle');
             
             if (!allExpanded) {
@@ -241,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const symbol = button.dataset.symbol;
                     const newsRow = document.getElementById(`news-${symbol}`);
                     
-                    if (newsRow.classList.contains('d-none')) {
+                    if (newsRow && newsRow.classList.contains('d-none')) {
                         button.click(); // Trigger the existing click handler
                     }
                 });
@@ -257,7 +301,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const symbol = button.dataset.symbol;
                     const newsRow = document.getElementById(`news-${symbol}`);
                     
-                    if (!newsRow.classList.contains('d-none')) {
+                    if (newsRow && !newsRow.classList.contains('d-none')) {
                         button.click(); // Trigger the existing click handler
                     }
                 });
@@ -271,13 +315,190 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Handle news toggle buttons
-    document.querySelectorAll('.news-toggle').forEach(button => {
-        button.addEventListener('click', function(e) {
+    // Handle drag-and-drop reordering
+    let draggedElement = null;
+    const draggableRows = document.querySelectorAll('.draggable-row');
+    
+    draggableRows.forEach(row => {
+        const dragHandle = row.querySelector('.drag-handle');
+        if (!dragHandle) {
+            console.error('No drag handle found for row:', row.dataset.symbol);
+            return;
+        }
+        
+        // Make the drag handle itself draggable
+        dragHandle.setAttribute('draggable', 'true');
+        
+        // Handle drag start on the drag handle
+        dragHandle.addEventListener('dragstart', function(e) {
+            draggedElement = row;
+            row.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', row.dataset.symbol);
+            
+            console.log('Drag started for:', row.dataset.symbol);
+        });
+        
+        // Handle drag end on the drag handle
+        dragHandle.addEventListener('dragend', function(e) {
+            row.classList.remove('dragging');
+            
+            // Clear all drag-over classes
+            document.querySelectorAll('.drag-over').forEach(el => {
+                el.classList.remove('drag-over');
+            });
+            
+            console.log('Drag ended for:', row.dataset.symbol);
+        });
+        
+        // Prevent dragging on the row itself if not from drag handle
+        row.addEventListener('dragstart', function(e) {
+            if (e.target !== dragHandle && !e.target.closest('.drag-handle')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        row.addEventListener('dragover', function(e) {
+            if (draggedElement && draggedElement !== this) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                
+                // Clear previous drag-over indicators
+                document.querySelectorAll('.drag-over').forEach(el => {
+                    el.classList.remove('drag-over');
+                });
+                
+                this.classList.add('drag-over');
+            }
+        });
+        
+        row.addEventListener('drop', function(e) {
             e.preventDefault();
             
-            const symbol = this.dataset.symbol;
-            const watchlistId = this.dataset.watchlistId;
+            if (draggedElement && draggedElement !== this) {
+                // Get the tbody element
+                const tbody = this.parentNode;
+                
+                // Get the dragged symbol and its news row
+                const draggedSymbol = draggedElement.dataset.symbol;
+                const draggedNewsRow = document.getElementById(`news-${draggedSymbol}`);
+                
+                // Get the target symbol and its news row
+                const targetSymbol = this.dataset.symbol;
+                const targetNewsRow = document.getElementById(`news-${targetSymbol}`);
+                
+                // Determine if we should insert before or after this element
+                const rect = this.getBoundingClientRect();
+                const mouseY = e.clientY;
+                const rowMiddle = rect.top + rect.height / 2;
+                
+                if (mouseY < rowMiddle) {
+                    // Insert before the target element
+                    tbody.insertBefore(draggedElement, this);
+                    if (draggedNewsRow) {
+                        tbody.insertBefore(draggedNewsRow, draggedElement.nextSibling);
+                    }
+                } else {
+                    // Insert after the target element (and its news row if it exists)
+                    const insertPoint = targetNewsRow ? targetNewsRow.nextSibling : this.nextSibling;
+                    tbody.insertBefore(draggedElement, insertPoint);
+                    if (draggedNewsRow) {
+                        tbody.insertBefore(draggedNewsRow, draggedElement.nextSibling);
+                    }
+                }
+                
+                // Save the new order to the backend
+                saveNewOrder();
+            }
+            
+            this.classList.remove('drag-over');
+        });
+        
+        row.addEventListener('dragleave', function(e) {
+            // Only remove drag-over if we're leaving the row entirely
+            const rect = this.getBoundingClientRect();
+            if (e.clientX < rect.left || e.clientX > rect.right || 
+                e.clientY < rect.top || e.clientY > rect.bottom) {
+                this.classList.remove('drag-over');
+            }
+        });
+    });
+    
+    function saveNewOrder() {
+        const watchlistId = {{ watchlist.id }};
+        const rows = document.querySelectorAll('.draggable-row');
+        const symbolOrder = Array.from(rows).map(row => row.dataset.symbol);
+        
+        fetch(`/api/watchlists/${watchlistId}/reorder`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(symbolOrder)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Order saved successfully:', data);
+            // Show a brief success indicator
+            showOrderSavedIndicator();
+        })
+        .catch(error => {
+            console.error('Error saving order:', error);
+            // Show an error message
+            showOrderErrorIndicator();
+        });
+    }
+    
+    function showOrderSavedIndicator() {
+        const indicator = document.createElement('div');
+        indicator.className = 'alert alert-success alert-dismissible fade show position-fixed';
+        indicator.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        indicator.innerHTML = `
+            <i class="bi bi-check-circle"></i>
+            Row order saved successfully!
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(indicator);
+        
+        setTimeout(() => {
+            if (indicator && indicator.parentNode) {
+                indicator.remove();
+            }
+        }, 3000);
+    }
+    
+    function showOrderErrorIndicator() {
+        const indicator = document.createElement('div');
+        indicator.className = 'alert alert-danger alert-dismissible fade show position-fixed';
+        indicator.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        indicator.innerHTML = `
+            <i class="bi bi-exclamation-triangle"></i>
+            Failed to save row order. Please refresh the page.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(indicator);
+        
+        setTimeout(() => {
+            if (indicator && indicator.parentNode) {
+                indicator.remove();
+            }
+        }, 5000);
+    }
+
+    // Handle news toggle buttons using event delegation
+    document.body.addEventListener('click', function(e) {
+        if (e.target.closest('.news-toggle')) {
+            e.preventDefault();
+            const button = e.target.closest('.news-toggle');
+            
+            const symbol = button.dataset.symbol;
+            const watchlistId = button.dataset.watchlistId;
             const newsRow = document.getElementById(`news-${symbol}`);
             const newsContent = newsRow.querySelector('.news-content');
             const newsLoading = newsRow.querySelector('.news-loading');
@@ -374,19 +595,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Update button to show collapse state
-                this.innerHTML = '<i class="bi bi-chevron-up"></i> Hide News';
-                this.classList.remove('btn-outline-secondary');
-                this.classList.add('btn-outline-primary');
+                button.innerHTML = '<i class="bi bi-chevron-up"></i> Hide News';
+                button.classList.remove('btn-outline-secondary');
+                button.classList.add('btn-outline-primary');
             } else {
                 // Hide the news row
                 newsRow.classList.add('d-none');
                 
                 // Update button to show expand state
-                this.innerHTML = '<i class="bi bi-newspaper"></i> News';
-                this.classList.remove('btn-outline-primary');
-                this.classList.add('btn-outline-secondary');
+                button.innerHTML = '<i class="bi bi-newspaper"></i> News';
+                button.classList.remove('btn-outline-primary');
+                button.classList.add('btn-outline-secondary');
             }
-        });
+        }
     });
     
     function renderNews(container, articles, cached, lastUpdated) {

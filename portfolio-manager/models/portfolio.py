@@ -97,6 +97,7 @@ class WatchedItem(Base):
     added_date = Column(DateTime, default=datetime.utcnow, nullable=False)
     news_data = Column(JSON, nullable=True)  # Cached news articles from Polygon.io
     last_news_update = Column(DateTime, nullable=True)  # Last time news was fetched
+    order_index = Column(Integer, nullable=False, default=0)  # Order position in watchlist
     
     # Relationship to watchlist
     watchlist = relationship("Watchlist", back_populates="watched_items")

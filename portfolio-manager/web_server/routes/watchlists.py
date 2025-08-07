@@ -431,3 +431,30 @@ async def test_news_endpoint(watchlist_id: int, symbol: str, db: Session = Depen
         "last_news_update": watched_item.last_news_update.isoformat() if watched_item.last_news_update else None,
         "test": True
     }
+
+
+# Reordering endpoints
+@router.post("/{watchlist_id}/reorder")
+async def reorder_watchlist_items(
+    watchlist_id: int, 
+    symbol_order: List[str], 
+    db: Session = Depends(get_db)
+):
+    """Reorder watched items in a watchlist."""
+    controller = WatchlistController(db)
+    
+    if not controller.get_watchlist(watchlist_id):
+        raise HTTPException(status_code=404, detail="Watchlist not found")
+    
+    try:
+        success = controller.reorder_watchlist_items(watchlist_id, symbol_order)
+        if success:
+            return {
+                "success": True,
+                "message": f"Reordered {len(symbol_order)} items successfully",
+                "order": symbol_order
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to reorder items")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
