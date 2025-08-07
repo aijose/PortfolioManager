@@ -127,12 +127,6 @@
                                 </td>
                                 <td>
                                     <strong class="text-primary">{{ item.symbol }}</strong>
-                                    <button class="btn btn-sm btn-outline-secondary ms-2 news-toggle" 
-                                            data-symbol="{{ item.symbol }}"
-                                            data-watchlist-id="{{ watchlist.id }}"
-                                            title="Load news for {{ item.symbol }}">
-                                        <i class="bi bi-newspaper"></i> News
-                                    </button>
                                 </td>
                                 <td>
                                     {% if item.last_price %}
@@ -152,6 +146,12 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-sm btn-outline-secondary news-toggle" 
+                                                data-symbol="{{ item.symbol }}"
+                                                data-watchlist-id="{{ watchlist.id }}"
+                                                title="Load news for {{ item.symbol }}">
+                                            <i class="bi bi-newspaper"></i>
+                                        </button>
                                         <form method="post" action="/watchlists/{{ watchlist.id }}/items/{{ item.symbol }}/refresh-price" class="d-inline">
                                             <button type="submit" class="btn btn-outline-primary btn-sm" title="Refresh Price">
                                                 <i class="bi bi-arrow-repeat"></i>
@@ -595,17 +595,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Update button to show collapse state
-                button.innerHTML = '<i class="bi bi-chevron-up"></i> Hide News';
+                button.innerHTML = '<i class="bi bi-chevron-up"></i>';
                 button.classList.remove('btn-outline-secondary');
                 button.classList.add('btn-outline-primary');
+                button.title = `Hide news for ${symbol}`;
             } else {
                 // Hide the news row
                 newsRow.classList.add('d-none');
                 
                 // Update button to show expand state
-                button.innerHTML = '<i class="bi bi-newspaper"></i> News';
+                button.innerHTML = '<i class="bi bi-newspaper"></i>';
                 button.classList.remove('btn-outline-primary');
                 button.classList.add('btn-outline-secondary');
+                button.title = `Load news for ${symbol}`;
             }
         }
     });
