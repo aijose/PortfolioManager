@@ -32,20 +32,10 @@
                             </small>
                         </div>
                         
-                        <div class="row text-center g-0">
-                            <div class="col-6">
-                                <div class="stats-card border-end">
-                                    <div class="stats-label">Stocks</div>
-                                    <div class="stats-value">{{ item.summary.total_items }}</div>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="stats-card">
-                                    <div class="stats-label">With Prices</div>
-                                    <div class="stats-value {% if item.summary.price_coverage >= 80 %}status-positive{% elif item.summary.price_coverage >= 50 %}status-warning{% else %}status-negative{% endif %}">
-                                        {{ item.summary.items_with_prices }}
-                                    </div>
-                                </div>
+                        <div class="text-center">
+                            <div class="stats-card">
+                                <div class="stats-label">Stocks</div>
+                                <div class="stats-value">{{ item.summary.total_items }}</div>
                             </div>
                         </div>
                         
@@ -58,13 +48,6 @@
                             </div>
                         {% endif %}
                         
-                        {% if item.summary.average_price > 0 %}
-                            <div class="mt-2">
-                                <small class="text-success fw-bold">
-                                    Avg Price: ${{ "%.2f"|format(item.summary.average_price) }}
-                                </small>
-                            </div>
-                        {% endif %}
                         
                         {% if item.summary.total_items > 0 and item.summary.price_coverage < 100 %}
                             <div class="mt-2">
