@@ -70,26 +70,20 @@
             </p>
         </div>
     
-        <div class="btn-group">
-            <a href="/watchlists/{{ watchlist.id }}/items/new" class="btn btn-primary btn-lg shadow-custom">
-                <i class="bi bi-plus-circle me-2"></i>Add Stock
+        <div class="d-flex gap-2">
+            <a href="/watchlists" class="btn btn-secondary btn-lg shadow-custom">
+                <i class="bi bi-arrow-left me-2"></i>Back to Watchlists
             </a>
-            <button type="button" class="btn btn-outline-secondary btn-lg dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown">
-                <span class="visually-hidden">Toggle Dropdown</span>
-            </button>
-            <ul class="dropdown-menu shadow-custom">
-                <li><a class="dropdown-item" href="/watchlists/{{ watchlist.id }}/edit">
-                    <i class="bi bi-pencil me-2"></i>Edit Watchlist
-                </a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li>
-                    <form method="post" action="/watchlists/{{ watchlist.id }}/refresh-prices" class="d-inline">
-                        <button type="submit" class="dropdown-item">
-                            <i class="bi bi-arrow-repeat me-2"></i>Refresh All Prices
-                        </button>
-                    </form>
-                </li>
-            </ul>
+            <a href="/watchlists/{{ watchlist.id }}/edit" class="btn btn-outline-primary btn-lg">
+                <i class="bi bi-pencil me-2"></i>Edit Watchlist
+            </a>
+            <form method="post" action="/watchlists/{{ watchlist.id }}/delete" 
+                  onsubmit="return confirm('Are you sure? This will permanently delete this watchlist and all tracked stocks.')" 
+                  class="d-inline">
+                <button type="submit" class="btn btn-outline-danger btn-lg">
+                    <i class="bi bi-trash me-2"></i>Delete Watchlist
+                </button>
+            </form>
         </div>
     </div>
 </div>
@@ -103,7 +97,10 @@
             <h5 class="mb-0 fw-bold">
                 <i class="bi bi-list-stars me-2"></i>Watched Stocks
             </h5>
-            <div class="btn-group">
+            <div class="d-flex gap-2">
+                <a href="/watchlists/{{ watchlist.id }}/items/new" class="btn btn-light btn-sm">
+                    <i class="bi bi-plus-circle me-1"></i>Add Stock
+                </a>
                 <form method="post" action="/watchlists/{{ watchlist.id }}/refresh-prices" class="d-inline">
                     <button type="submit" class="btn btn-light btn-sm">
                         <i class="bi bi-arrow-repeat me-1"></i>Refresh All Prices
@@ -215,25 +212,6 @@
     </div>
 {% endif %}
 
-<!-- Action Buttons -->
-<div class="d-flex justify-content-between mt-5 fade-in">
-    <a href="/watchlists" class="btn btn-secondary btn-lg shadow-custom">
-        <i class="bi bi-arrow-left me-2"></i>Back to Watchlists
-    </a>
-    
-    <div class="btn-group">
-        <a href="/watchlists/{{ watchlist.id }}/edit" class="btn btn-outline-primary btn-lg">
-            <i class="bi bi-pencil me-2"></i>Edit Watchlist
-        </a>
-        <form method="post" action="/watchlists/{{ watchlist.id }}/delete" 
-              onsubmit="return confirm('Are you sure? This will permanently delete this watchlist and all tracked stocks.')" 
-              class="d-inline">
-            <button type="submit" class="btn btn-outline-danger btn-lg">
-                <i class="bi bi-trash me-2"></i>Delete Watchlist
-            </button>
-        </form>
-    </div>
-</div>
 
 
 <style>
