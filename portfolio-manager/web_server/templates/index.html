@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Portfolio Manager - Manage Your Investments{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Hero Section -->
+    <div class="text-center py-5 mb-5">
+        <div class="container">
+            <h1 class="display-1 text-gradient mb-4">Portfolio Manager</h1>
+            <p class="lead text-muted mb-4">
+                Take control of your investments with powerful portfolio management and stock tracking tools
+            </p>
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="d-flex gap-3 justify-content-center flex-wrap">
+                        <a href="/portfolios" class="btn btn-primary btn-lg shadow-custom">
+                            <i class="bi bi-briefcase me-2"></i>Manage Portfolios
+                        </a>
+                        <a href="/watchlists" class="btn btn-outline-primary btn-lg">
+                            <i class="bi bi-eye me-2"></i>Track Stocks
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="container">
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="card h-100 slide-up text-center">
+                    <div class="card-body">
+                        <div class="gradient-bg text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-briefcase" style="font-size: 2rem;"></i>
+                        </div>
+                        <h5 class="card-title">Portfolio Management</h5>
+                        <p class="text-muted">
+                            Create and manage multiple investment portfolios with automatic rebalancing and performance tracking.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card h-100 slide-up text-center">
+                    <div class="card-body">
+                        <div class="gradient-bg text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-eye" style="font-size: 2rem;"></i>
+                        </div>
+                        <h5 class="card-title">Stock Watchlists</h5>
+                        <p class="text-muted">
+                            Track your favorite stocks with real-time price updates and integrated news feeds.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card h-100 slide-up text-center">
+                    <div class="card-body">
+                        <div class="gradient-bg text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-graph-up-arrow" style="font-size: 2rem;"></i>
+                        </div>
+                        <h5 class="card-title">Real-time Data</h5>
+                        <p class="text-muted">
+                            Get live market data and news updates to make informed investment decisions.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card slide-up shadow-custom">
+                    <div class="card-header gradient-bg text-white text-center">
+                        <h5 class="mb-0 fw-bold">
+                            <i class="bi bi-speedometer2 me-2"></i>Get Started Today
+                        </h5>
+                    </div>
+                    <div class="card-body text-center py-4">
+                        <div class="row g-4">
+                            <div class="col-sm-6">
+                                <div class="stats-card">
+                                    <div class="stats-value text-primary">∞</div>
+                                    <div class="stats-label">Portfolios</div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="stats-card">
+                                    <div class="stats-value text-success">∞</div>
+                                    <div class="stats-label">Watchlists</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <p class="text-muted">Start managing your investments with unlimited portfolios and watchlists</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

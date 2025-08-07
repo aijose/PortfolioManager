@@ -3,18 +3,22 @@
 {% block title %}Portfolios - Portfolio Manager{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>My Portfolios</h1>
-    <a href="/portfolios/new" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> New Portfolio
-    </a>
-</div>
+<div class="fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h1 class="text-gradient mb-2">My Portfolios</h1>
+            <p class="text-muted lead">Manage and track your investment portfolios</p>
+        </div>
+        <a href="/portfolios/new" class="btn btn-primary btn-lg shadow-custom">
+            <i class="bi bi-plus-circle me-2"></i>New Portfolio
+        </a>
+    </div></div>
 
 {% if portfolio_summaries %}
     <div class="row">
         {% for item in portfolio_summaries %}
             <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100">
+                <div class="card h-100 slide-up">
                     <div class="card-body">
                         <h5 class="card-title">
                             <a href="/portfolios/{{ item.portfolio.id }}" class="text-decoration-none">
@@ -28,20 +32,22 @@
                             </small>
                         </div>
                         
-                        <div class="row text-center">
+                        <div class="row text-center g-0">
                             <div class="col-6">
-                                <div class="border-end">
-                                    <h6 class="text-muted mb-1">Holdings</h6>
-                                    <span class="h5">{{ item.summary.total_holdings }}</span>
+                                <div class="stats-card border-end">
+                                    <div class="stats-label">Holdings</div>
+                                    <div class="stats-value">{{ item.summary.total_holdings }}</div>
                                 </div>
                             </div>
                             <div class="col-6">
-                                <h6 class="text-muted mb-1">Total Value</h6>
-                                {% if item.summary.total_value > 0 %}
-                                    <span class="h5 text-success">${{ "%.2f"|format(item.summary.total_value) }}</span>
-                                {% else %}
-                                    <span class="h5 text-muted">--</span>
-                                {% endif %}
+                                <div class="stats-card">
+                                    <div class="stats-label">Total Value</div>
+                                    {% if item.summary.total_value > 0 %}
+                                        <div class="stats-value status-positive">${{ "%.2f"|format(item.summary.total_value) }}</div>
+                                    {% else %}
+                                        <div class="stats-value status-neutral">--</div>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                         
@@ -80,13 +86,14 @@
         {% endfor %}
     </div>
 {% else %}
-    <div class="text-center py-5">
-        <i class="bi bi-briefcase display-1 text-muted"></i>
-        <h3 class="mt-3 text-muted">No Portfolios Yet</h3>
-        <p class="text-muted">Create your first portfolio to start managing your investments.</p>
-        <a href="/portfolios/new" class="btn btn-primary btn-lg">
-            <i class="bi bi-plus-circle"></i> Create Portfolio
+    <div class="empty-state">
+        <i class="bi bi-briefcase"></i>
+        <h3>No Portfolios Yet</h3>
+        <p>Create your first portfolio to start managing your investments.</p>
+        <a href="/portfolios/new" class="btn btn-primary btn-lg shadow-custom">
+            <i class="bi bi-plus-circle me-2"></i>Create Portfolio
         </a>
     </div>
 {% endif %}
+</div>
 {% endblock %}

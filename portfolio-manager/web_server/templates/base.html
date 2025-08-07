@@ -19,7 +19,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="/">
-                <i class="bi bi-graph-up"></i> Portfolio Manager
+                <i class="bi bi-graph-up me-2"></i>Portfolio Manager
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -30,12 +30,12 @@
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="/portfolios">
-                            <i class="bi bi-briefcase"></i> Portfolios
+                            <i class="bi bi-briefcase me-1"></i>Portfolios
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/watchlists">
-                            <i class="bi bi-eye"></i> Watchlists
+                            <i class="bi bi-eye me-1"></i>Watchlists
                         </a>
                     </li>
                 </ul>
@@ -44,14 +44,14 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="container mt-4">
+    <main class="container mt-5">
         {% block content %}{% endblock %}
     </main>
 
     <!-- Footer -->
-    <footer class="bg-light text-center text-muted py-4 mt-5">
+    <footer class="text-center text-muted py-4 mt-5">
         <div class="container">
-            <p>&copy; 2025 Portfolio Manager. Built with FastAPI and Bootstrap.</p>
+            <p class="mb-0">&copy; 2025 Portfolio Manager. Built with FastAPI and Bootstrap.</p>
         </div>
     </footer>
 
