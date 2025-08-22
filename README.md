@@ -251,12 +251,23 @@ The application uses sensible defaults but can be configured:
 - **Max Workers**: Concurrent price fetching threads (default: 10)
 - **Database**: SQLite file location (default: `data/portfolio_manager.db`)
 
+## 📚 Documentation
+
+For comprehensive documentation, visit the [docs folder](docs/):
+
+- **[📋 User Guide](docs/user-guide.md)** - Complete user manual and feature guide
+- **[🛠 Developer Guide](docs/developer-guide.md)** - Development setup, architecture, and contributing
+- **[🔌 API Reference](docs/api-reference.md)** - Complete API documentation with examples
+- **[🚀 Deployment Guide](docs/deployment.md)** - Production deployment and configuration
+- **[🔧 Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
+
 ## Contributing
 
-1. Follow the sprint-based development plan in `docs/PRD.md`
+1. Follow the development workflow in [Developer Guide](docs/developer-guide.md#contributing-guidelines)
 2. Write tests for new features
-3. Use proper commit messages
-4. Ensure code formatting with black and ruff
+3. Update documentation for changes
+4. Use proper commit messages
+5. Ensure code formatting with black and ruff
 
 ## License
 
