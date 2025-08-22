@@ -60,6 +60,23 @@ Open your browser and navigate to:
 http://localhost:8000
 ```
 
+## Screenshots
+
+### Portfolio Management
+![Portfolio Dashboard](docs/images/portfolio_screenshot.png)
+*Main portfolio dashboard showing holdings, allocations, and current values*
+
+### Rebalancing Analysis
+![Rebalancing Analysis](docs/images/rebalancing_analysis_screenshot.png)
+*Portfolio rebalancing analysis with buy/sell recommendations*
+
+### Watchlist Views
+![Watchlist with News](docs/images/watchlist_with_news_screenshot.png)
+*Watchlist interface displaying stock prices with integrated news feed*
+
+![Watchlist without News](docs/images/watchlist_no_news.png)
+*Clean watchlist view focused on stock price monitoring*
+
 ## Usage
 
 ### Creating a Portfolio
@@ -132,6 +149,7 @@ PortfolioManager/
 │   └── tests/               # Test suites
 ├── data/                    # Database files
 ├── docs/                    # Documentation
+│   └── images/              # Screenshots and images
 ├── scripts/                 # Utility scripts
 └── pyproject.toml           # Project configuration
 ```
