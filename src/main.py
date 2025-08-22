@@ -31,7 +31,7 @@ def run_web_server(host: str = "127.0.0.1", port: int = 8000, reload: bool = Tru
         host=host,
         port=port,
         reload=reload,
-        reload_dirs=[".", "web_server", "models", "controllers"]
+        reload_dirs=["."]
     )
 
 

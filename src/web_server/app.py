@@ -49,11 +49,15 @@ app.include_router(stock_data_router)
 app.include_router(rebalancing_router)
 app.include_router(watchlists_router)
 
+# Get the absolute path to the project root
+import os
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # Mount static files
-app.mount("/static", StaticFiles(directory="web_server/static"), name="static")
+app.mount("/static", StaticFiles(directory=os.path.join(PROJECT_ROOT, "web_server", "static")), name="static")
 
 # Setup templates
-templates = Jinja2Templates(directory="web_server/templates")
+templates = Jinja2Templates(directory=os.path.join(PROJECT_ROOT, "web_server", "templates"))
 
 # Create database tables on startup
 @app.on_event("startup")

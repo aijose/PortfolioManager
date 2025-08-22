@@ -6,7 +6,11 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/portfolio_manager.db")
+# Use absolute path to ensure we always use the database in project root
+import os
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+DATABASE_PATH = os.path.join(PROJECT_ROOT, "data", "portfolio_manager.db")
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DATABASE_PATH}")
 
 # Create database engine
 engine = create_engine(
@@ -34,7 +38,7 @@ def get_db():
 def create_tables():
     """Create all database tables."""
     # Ensure data directory exists
-    os.makedirs("data", exist_ok=True)
+    os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
     Base.metadata.create_all(bind=engine)
 
 

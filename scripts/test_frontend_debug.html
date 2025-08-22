@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Integration Debug</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-4">
+    <div class="alert alert-info">
+        <h4>News Integration Debug</h4>
+        <p>This page tests the exact HTML structure and JavaScript from your watchlist template.</p>
+        <p><strong>Check the browser console (F12) for debug output.</strong></p>
+    </div>
+
+    <!-- Exact HTML structure from your watchlist template -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Watched Stocks</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Current Price</th>
+                            <th>Notes</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Simulating the exact loop structure -->
+                        <tr class="stock-row" data-symbol="AAPL">
+                            <td>
+                                <strong class="text-primary">AAPL</strong>
+                                <button class="btn btn-sm btn-outline-secondary ms-2 news-toggle" 
+                                        data-symbol="AAPL"
+                                        data-watchlist-id="1"
+                                        title="Load news for AAPL">
+                                    <i class="bi bi-newspaper"></i> News
+                                </button>
+                            </td>
+                            <td>
+                                <span class="fw-bold text-success">$150.25</span>
+                            </td>
+                            <td>
+                                <span class="text-muted">Test stock</span>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-arrow-repeat"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- Hidden expandable news row -->
+                        <tr class="news-row d-none" id="news-AAPL">
+                            <td colspan="4" class="p-0">
+                                <div class="news-container p-3 bg-light border-top">
+                                    <div class="news-loading d-none">
+                                        <div class="d-flex align-items-center">
+                                            <div class="spinner-border spinner-border-sm me-2" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            <span>Loading news for AAPL...</span>
+                                        </div>
+                                    </div>
+                                    <div class="news-content">
+                                        <!-- News articles will be loaded here -->
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Test with BTC-USD as well -->
+                        <tr class="stock-row" data-symbol="BTC-USD">
+                            <td>
+                                <strong class="text-primary">BTC-USD</strong>
+                                <button class="btn btn-sm btn-outline-secondary ms-2 news-toggle" 
+                                        data-symbol="BTC-USD"
+                                        data-watchlist-id="1"
+                                        title="Load news for BTC-USD">
+                                    <i class="bi bi-newspaper"></i> News
+                                </button>
+                            </td>
+                            <td>
+                                <span class="fw-bold text-success">$45,000</span>
+                            </td>
+                            <td>
+                                <span class="text-muted">Crypto test</span>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-arrow-repeat"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- Hidden expandable news row for BTC -->
+                        <tr class="news-row d-none" id="news-BTC-USD">
+                            <td colspan="4" class="p-0">
+                                <div class="news-container p-3 bg-light border-top">
+                                    <div class="news-loading d-none">
+                                        <div class="d-flex align-items-center">
+                                            <div class="spinner-border spinner-border-sm me-2" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            <span>Loading news for BTC-USD...</span>
+                                        </div>
+                                    </div>
+                                    <div class="news-content">
+                                        <!-- News articles will be loaded here -->
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <button id="test-direct-api" class="btn btn-warning">Test Direct API Call</button>
+        <button id="test-mock-data" class="btn btn-success">Test with Mock Data</button>
+        <button id="toggle-debug" class="btn btn-info">Toggle Debug Mode</button>
+    </div>
+
+    <div id="debug-output" class="mt-3 p-3 bg-dark text-white rounded d-none">
+        <h6>Debug Output:</h6>
+        <pre id="debug-log"></pre>
+    </div>
+</div>
+
+<script>
+// Debug logging function
+let debugMode = false;
+function debugLog(message, data = null) {
+    const timestamp = new Date().toLocaleTimeString();
+    const logMessage = `[${timestamp}] ${message}`;
+    console.log(logMessage, data || '');
+    
+    if (debugMode) {
+        const debugOutput = document.getElementById('debug-log');
+        if (debugOutput) {
+            debugOutput.textContent += logMessage + (data ? ' ' + JSON.stringify(data, null, 2) : '') + '\n';
+            debugOutput.scrollTop = debugOutput.scrollHeight;
+        }
+    }
+}
+
+// Mock data for testing
+const mockNewsData = {
+    "AAPL": {
+        "symbol": "AAPL",
+        "articles": [
+            {
+                "title": "Apple Reports Strong Q4 Earnings Beat Expectations",
+                "url": "https://example.com/apple-earnings",
+                "published_utc": "2025-01-06T14:30:00Z",
+                "source": "Reuters",
+                "summary": "Apple Inc. posted better-than-expected quarterly results driven by strong iPhone sales and services revenue growth."
+            },
+            {
+                "title": "AAPL Stock Analysis: Buy or Hold?",
+                "url": "https://example.com/aapl-analysis", 
+                "published_utc": "2025-01-06T13:15:00Z",
+                "source": "MarketWatch",
+                "summary": "Technical analysis shows bullish patterns for Apple stock with key support levels holding strong."
+            },
+            {
+                "title": "Apple's AI Strategy Gains Momentum",
+                "url": "https://example.com/apple-ai",
+                "published_utc": "2025-01-06T12:00:00Z",
+                "source": "TechCrunch", 
+                "summary": "Apple's artificial intelligence initiatives are showing promising results in early testing phases."
+            }
+        ],
+        "cached": true,
+        "last_updated": "2025-01-06T15:00:00Z",
+        "count": 3
+    },
+    "BTC-USD": {
+        "symbol": "BTC-USD",
+        "articles": [
+            {
+                "title": "Bitcoin Surges Past $45,000 Amid Institutional Interest",
+                "url": "https://example.com/btc-surge",
+                "published_utc": "2025-01-06T16:00:00Z", 
+                "source": "CoinDesk",
+                "summary": "Bitcoin's price surge is attributed to increased institutional adoption and regulatory clarity."
+            }
+        ],
+        "cached": false,
+        "last_updated": "2025-01-06T16:00:00Z",
+        "count": 1
+    }
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    debugLog('DOM loaded, initializing news functionality');
+    
+    // Test buttons
+    document.getElementById('test-direct-api').addEventListener('click', function() {
+        debugLog('Testing direct API call...');
+        testDirectAPI();
+    });
+    
+    document.getElementById('test-mock-data').addEventListener('click', function() {
+        debugLog('Testing with mock data...');
+        loadNewsForSymbol('AAPL', mockNewsData.AAPL);
+    });
+    
+    document.getElementById('toggle-debug').addEventListener('click', function() {
+        debugMode = !debugMode;
+        const debugOutput = document.getElementById('debug-output');
+        if (debugMode) {
+            debugOutput.classList.remove('d-none');
+        } else {
+            debugOutput.classList.add('d-none');
+        }
+        debugLog(`Debug mode: ${debugMode ? 'ON' : 'OFF'}`);
+    });
+
+    // Handle news toggle buttons - EXACT copy from your template
+    document.querySelectorAll('.news-toggle').forEach(button => {
+        debugLog('Found news toggle button', { symbol: button.dataset.symbol });
+        
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const symbol = this.dataset.symbol;
+            const watchlistId = this.dataset.watchlistId;
+            const newsRow = document.getElementById(`news-${symbol}`);
+            const newsContent = newsRow.querySelector('.news-content');
+            const newsLoading = newsRow.querySelector('.news-loading');
+            
+            debugLog('News toggle clicked', { symbol, watchlistId, hasNewsRow: !!newsRow });
+            
+            // Toggle visibility
+            if (newsRow.classList.contains('d-none')) {
+                debugLog('Showing news row');
+                // Show the news row
+                newsRow.classList.remove('d-none');
+                
+                // Check if we already have content
+                if (newsContent.innerHTML.trim() === '') {
+                    debugLog('Loading content...');
+                    // Show loading spinner
+                    newsLoading.classList.remove('d-none');
+                    
+                    // Try real API first, fall back to mock data
+                    const apiUrl = `/api/watchlists/${watchlistId}/items/${symbol}/news`;
+                    debugLog('Fetching news from', { apiUrl });
+                    
+                    fetch(apiUrl)
+                        .then(response => {
+                            debugLog('Response received', { status: response.status });
+                            if (!response.ok) {
+                                throw new Error(`HTTP ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            debugLog('News data received', data);
+                            newsLoading.classList.add('d-none');
+                            
+                            if (data.articles && data.articles.length > 0) {
+                                renderNews(newsContent, data.articles, data.cached, data.last_updated);
+                            } else {
+                                newsContent.innerHTML = `
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle"></i>
+                                        No news articles found for ${symbol}.
+                                    </div>
+                                `;
+                            }
+                        })
+                        .catch(error => {
+                            debugLog('API call failed, using mock data', { error: error.message });
+                            newsLoading.classList.add('d-none');
+                            
+                            // Fall back to mock data
+                            const mockData = mockNewsData[symbol];
+                            if (mockData) {
+                                debugLog('Using mock data for', symbol);
+                                renderNews(newsContent, mockData.articles, mockData.cached, mockData.last_updated);
+                            } else {
+                                newsContent.innerHTML = `
+                                    <div class="alert alert-warning">
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                        API Error: ${error.message}<br>
+                                        <small>No mock data available for ${symbol}</small>
+                                    </div>
+                                `;
+                            }
+                        });
+                }
+                
+                // Update button to show collapse state
+                this.innerHTML = '<i class="bi bi-chevron-up"></i> Hide News';
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-outline-primary');
+            } else {
+                debugLog('Hiding news row');
+                // Hide the news row
+                newsRow.classList.add('d-none');
+                
+                // Update button to show expand state
+                this.innerHTML = '<i class="bi bi-newspaper"></i> News';
+                this.classList.remove('btn-outline-primary');
+                this.classList.add('btn-outline-secondary');
+            }
+        });
+    });
+    
+    function renderNews(container, articles, cached, lastUpdated) {
+        debugLog('Rendering news', { articlesCount: articles.length, cached });
+        
+        const cacheIndicator = cached ? 
+            '<small class="text-muted">(cached)</small>' : 
+            '<small class="text-success">(fresh)</small>';
+        
+        const lastUpdatedText = lastUpdated ? 
+            `Last updated: ${new Date(lastUpdated).toLocaleString()}` : 
+            'Never updated';
+        
+        let html = `
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">
+                    <i class="bi bi-newspaper"></i> 
+                    Latest News ${cacheIndicator}
+                </h6>
+                <small class="text-muted">${lastUpdatedText}</small>
+            </div>
+        `;
+        
+        articles.forEach((article, index) => {
+            const publishedDate = new Date(article.published_utc).toLocaleDateString();
+            
+            html += `
+                <div class="news-article mb-3 ${index < articles.length - 1 ? 'border-bottom pb-3' : ''}">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <h6 class="mb-1">
+                            <a href="${article.url}" target="_blank" class="text-decoration-none">
+                                ${article.title}
+                            </a>
+                        </h6>
+                        <small class="text-muted ms-2">${publishedDate}</small>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="bi bi-building"></i> ${article.source}
+                        </small>
+                        <a href="${article.url}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-box-arrow-up-right"></i> Read More
+                        </a>
+                    </div>
+                    ${article.summary ? `<p class="text-muted small mt-2 mb-0">${article.summary}</p>` : ''}
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+        debugLog('News rendered successfully');
+    }
+
+    function testDirectAPI() {
+        fetch('/api/watchlists/1/items/AAPL/news')
+            .then(response => {
+                debugLog('Direct API test - Status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                debugLog('Direct API test - Success:', data);
+                alert('API test successful! Check console for details.');
+            })
+            .catch(error => {
+                debugLog('Direct API test - Error:', error.message);
+                alert('API test failed: ' + error.message);
+            });
+    }
+
+    function loadNewsForSymbol(symbol, data) {
+        const newsContent = document.querySelector(`#news-${symbol} .news-content`);
+        const newsRow = document.getElementById(`news-${symbol}`);
+        
+        if (newsRow && newsContent) {
+            newsRow.classList.remove('d-none');
+            renderNews(newsContent, data.articles, data.cached, data.last_updated);
+            
+            // Update button
+            const button = document.querySelector(`[data-symbol="${symbol}"]`);
+            if (button) {
+                button.innerHTML = '<i class="bi bi-chevron-up"></i> Hide News';
+                button.classList.remove('btn-outline-secondary');
+                button.classList.add('btn-outline-primary');
+            }
+        }
+    }
+    
+    debugLog('News functionality initialized');
+});
+</script>
+</body>
+</html>
