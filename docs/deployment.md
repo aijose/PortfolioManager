@@ -66,7 +66,7 @@ Portfolio Manager is designed as a **single-user local application** with severa
 1. **Clone Repository**
    ```bash
    git clone <repository-url>
-   cd portfolio-manager
+   cd PortfolioManager
    ```
 
 2. **Install Dependencies**
@@ -193,7 +193,7 @@ For automatic startup on Linux systems:
 
 1. **Create Service File**
    ```bash
-   sudo nano /etc/systemd/system/portfolio-manager.service
+   sudo nano /etc/systemd/system/PortfolioManager.service
    ```
 
 2. **Service Configuration**
@@ -206,11 +206,11 @@ For automatic startup on Linux systems:
    Type=exec
    User=your_username
    Group=your_group
-   WorkingDirectory=/path/to/portfolio-manager
-   Environment=PATH=/path/to/portfolio-manager/.venv/bin
+   WorkingDirectory=/path/to/PortfolioManager
+   Environment=PATH=/path/to/PortfolioManager/.venv/bin
    Environment=ENVIRONMENT=production
    Environment=DATABASE_URL=sqlite:///data/portfolio_manager.db
-   ExecStart=/path/to/portfolio-manager/.venv/bin/uvicorn web_server.app:app --host 0.0.0.0 --port 8000
+   ExecStart=/path/to/PortfolioManager/.venv/bin/uvicorn web_server.app:app --host 0.0.0.0 --port 8000
    Restart=always
    RestartSec=3
    
@@ -221,9 +221,9 @@ For automatic startup on Linux systems:
 3. **Enable and Start Service**
    ```bash
    sudo systemctl daemon-reload
-   sudo systemctl enable portfolio-manager
-   sudo systemctl start portfolio-manager
-   sudo systemctl status portfolio-manager
+   sudo systemctl enable PortfolioManager
+   sudo systemctl start PortfolioManager
+   sudo systemctl status PortfolioManager
    ```
 
 ## Docker Deployment
@@ -272,7 +272,7 @@ Create `docker-compose.yml`:
 version: '3.8'
 
 services:
-  portfolio-manager:
+  PortfolioManager:
     build: .
     ports:
       - "8000:8000"
@@ -313,7 +313,7 @@ docker-compose down
 docker-compose up -d --build
 
 # Access shell
-docker-compose exec portfolio-manager bash
+docker-compose exec PortfolioManager bash
 ```
 
 ### Docker with Bind Mounts
@@ -326,12 +326,12 @@ mkdir -p data logs
 
 # Run with bind mounts
 docker run -d \
-  --name portfolio-manager \
+  --name PortfolioManager \
   -p 8000:8000 \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/logs:/app/logs \
   -e ENVIRONMENT=production \
-  portfolio-manager:latest
+  PortfolioManager:latest
 ```
 
 ## Environment Configuration
@@ -528,7 +528,7 @@ server {
     # ... other config ...
     
     location /static/ {
-        alias /path/to/portfolio-manager/src/web_server/static/;
+        alias /path/to/PortfolioManager/src/web_server/static/;
         expires 1y;
         add_header Cache-Control "public, immutable";
     }
@@ -574,10 +574,10 @@ LOGGING_CONFIG = {
 **Log Rotation:**
 ```bash
 # Setup logrotate
-sudo nano /etc/logrotate.d/portfolio-manager
+sudo nano /etc/logrotate.d/PortfolioManager
 
 # Configuration
-/path/to/portfolio-manager/logs/*.log {
+/path/to/PortfolioManager/logs/*.log {
     daily
     missingok
     rotate 30
@@ -613,7 +613,7 @@ check_service() {
     else
         echo "$(date): Portfolio Manager is DOWN"
         # Restart service
-        systemctl restart portfolio-manager
+        systemctl restart PortfolioManager
     fi
 }
 
@@ -646,7 +646,7 @@ done >> logs/resource_usage.log
 # backup.sh
 
 BACKUP_DIR="/path/to/backups"
-DB_PATH="/path/to/portfolio-manager/data/portfolio_manager.db"
+DB_PATH="/path/to/PortfolioManager/data/portfolio_manager.db"
 DATE=$(date +"%Y%m%d_%H%M%S")
 
 # Create backup directory
@@ -681,7 +681,7 @@ crontab -e
 # full_backup.sh
 
 BACKUP_DIR="/path/to/backups"
-APP_DIR="/path/to/portfolio-manager"
+APP_DIR="/path/to/PortfolioManager"
 DATE=$(date +"%Y%m%d_%H%M%S")
 
 # Create backup archive
@@ -741,7 +741,7 @@ chmod 664 data/portfolio_manager.db
 **Application Updates:**
 ```bash
 # Backup current version
-cp -r portfolio-manager portfolio-manager-backup
+cp -r PortfolioManager PortfolioManager-backup
 
 # Pull updates
 git pull origin main
@@ -750,7 +750,7 @@ git pull origin main
 uv sync
 
 # Restart service
-systemctl restart portfolio-manager
+systemctl restart PortfolioManager
 ```
 
 **Dependency Updates:**

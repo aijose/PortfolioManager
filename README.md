@@ -41,7 +41,7 @@ A modern web-based stock portfolio management and rebalancing application built 
 
 ```bash
 git clone <repository-url>
-cd portfolio-manager
+cd PortfolioManager
 ```
 
 2. Install dependencies using uv:

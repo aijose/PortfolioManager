@@ -27,7 +27,7 @@
 1. **Clone the Repository**
    ```bash
    git clone <repository-url>
-   cd portfolio-manager
+   cd PortfolioManager
    ```
 
 2. **Install Dependencies**
@@ -645,8 +645,8 @@ export LOG_LEVEL=INFO
 gunicorn web_server.app:app -w 4 -k uvicorn.workers.UvicornWorker
 
 # Using Docker (if Dockerfile exists)
-docker build -t portfolio-manager .
-docker run -p 8000:8000 portfolio-manager
+docker build -t PortfolioManager .
+docker run -p 8000:8000 PortfolioManager
 ```
 
 ### Security Considerations
