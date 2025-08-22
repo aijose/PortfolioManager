@@ -14,6 +14,7 @@ from sqlalchemy.orm import sessionmaker
 from web_server.app import app
 from models.database import get_db, Base
 from models.portfolio import Portfolio, Holding, Watchlist, WatchedItem  # Import all models
+import models.database  # Import the module for patching
 
 
 # Test database setup - use a file-based test database for more reliable testing
@@ -35,10 +36,16 @@ def override_get_db():
 # Override the dependency at module level
 app.dependency_overrides[get_db] = override_get_db
 
+# Also patch the TestingSessionLocal in the database module for direct imports
+models.database.TestingSessionLocal = TestingSessionLocal
+
 
 @pytest.fixture(scope="function", autouse=True)
 def test_db():
     """Create clean test database for each test."""
+    # Ensure all models are imported before creating tables
+    from models.portfolio import Portfolio, Holding, Watchlist, WatchedItem
+    
     # Create tables fresh for each test
     Base.metadata.drop_all(bind=test_engine)
     Base.metadata.create_all(bind=test_engine)

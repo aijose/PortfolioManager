@@ -14,35 +14,35 @@ def mock_stock_controller():
 
 def test_get_current_price_success(mock_stock_controller):
     """Test successful current price retrieval."""
-    mock_data = {
-        'AAPL': {
-            'price': 150.25,
-            'change': 2.34,
-            'changePercent': 1.58
+    with patch('yfinance.Ticker') as mock_ticker:
+        mock_ticker_instance = Mock()
+        mock_ticker_instance.info = {
+            'currentPrice': 150.25,
+            'currency': 'USD',
+            'marketCap': 1000000000,
+            'trailingPE': 25.5,
+            'dividendYield': 0.02,
+            'fiftyTwoWeekHigh': 180.0,
+            'fiftyTwoWeekLow': 120.0,
+            'volume': 50000000,
+            'averageVolume': 45000000,
+            'marketState': 'REGULAR'
         }
-    }
-    
-    with patch('yfinance.download') as mock_download:
-        mock_df = Mock()
-        mock_df.empty = False
-        mock_df.iloc = Mock()
-        mock_df.iloc.__getitem__.return_value = {'Close': 150.25}
-        mock_download.return_value = mock_df
+        mock_ticker.return_value = mock_ticker_instance
         
         price = mock_stock_controller.get_current_price("AAPL")
         
         assert price is not None
         assert isinstance(price, (int, float))
-        assert price > 0
+        assert price == 150.25
 
 
 def test_get_current_price_invalid_symbol(mock_stock_controller):
     """Test current price retrieval with invalid symbol."""
-    with patch('yfinance.download') as mock_download:
-        # Mock empty dataframe for invalid symbol
-        mock_df = Mock()
-        mock_df.empty = True
-        mock_download.return_value = mock_df
+    with patch('yfinance.Ticker') as mock_ticker:
+        mock_ticker_instance = Mock()
+        mock_ticker_instance.info = {}  # Empty info for invalid symbol
+        mock_ticker.return_value = mock_ticker_instance
         
         price = mock_stock_controller.get_current_price("INVALID")
         

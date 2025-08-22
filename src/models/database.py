@@ -22,6 +22,10 @@ engine = create_engine(
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Create testing session factory (for test environment)
+# This will be overridden in conftest.py with proper test database
+TestingSessionLocal = SessionLocal  # Default to production session, tests will override
+
 # Create declarative base
 Base = declarative_base()
 

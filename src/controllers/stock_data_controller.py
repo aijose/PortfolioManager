@@ -380,3 +380,86 @@ class StockDataController:
     def get_cache_stats(self) -> dict:
         """Get cache statistics."""
         return self.cache.get_cache_info()
+    
+    # Convenience methods for backward compatibility and test expectations
+    def get_current_price(self, symbol: str) -> Optional[float]:
+        """Get current price as a float (convenience method)."""
+        stock_price = self.get_stock_price(symbol)
+        return stock_price.price if stock_price else None
+    
+    def get_batch_current_prices(self, symbols: List[str]) -> Dict[str, Optional[float]]:
+        """Get current prices for multiple symbols as floats."""
+        stock_prices = self.get_multiple_stock_prices(symbols)
+        return {symbol: (price.price if price else None) for symbol, price in stock_prices.items()}
+    
+    def get_historical_prices(self, symbol: str, start_date: datetime, end_date: datetime) -> Optional[dict]:
+        """Get historical price data for a symbol."""
+        try:
+            ticker = yf.Ticker(symbol.upper().strip())
+            hist = ticker.history(start=start_date, end=end_date)
+            
+            if hist.empty:
+                return None
+            
+            return {
+                'symbol': symbol.upper(),
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat(),
+                'data': hist.to_dict('records')
+            }
+        except Exception as e:
+            logger.error(f"Failed to get historical data for {symbol}: {e}")
+            return None
+    
+    def get_stock_info(self, symbol: str) -> Optional[dict]:
+        """Get stock information."""
+        try:
+            ticker = yf.Ticker(symbol.upper().strip())
+            info = ticker.info
+            return info if info else None
+        except Exception as e:
+            logger.error(f"Failed to get stock info for {symbol}: {e}")
+            return None
+    
+    def get_dividend_history(self, symbol: str) -> Optional[dict]:
+        """Get dividend history for a symbol."""
+        try:
+            ticker = yf.Ticker(symbol.upper().strip())
+            dividends = ticker.dividends
+            
+            if dividends.empty:
+                return None
+                
+            return {
+                'symbol': symbol.upper(),
+                'dividends': dividends.to_dict()
+            }
+        except Exception as e:
+            logger.error(f"Failed to get dividend history for {symbol}: {e}")
+            return None
+    
+    def get_stock_splits(self, symbol: str) -> Optional[dict]:
+        """Get stock split history for a symbol."""
+        try:
+            ticker = yf.Ticker(symbol.upper().strip())
+            splits = ticker.splits
+            
+            if splits.empty:
+                return None
+                
+            return {
+                'symbol': symbol.upper(),
+                'splits': splits.to_dict()
+            }
+        except Exception as e:
+            logger.error(f"Failed to get stock splits for {symbol}: {e}")
+            return None
+    
+    def calculate_price_change(self, current_price: float, previous_price: float) -> tuple[float, float]:
+        """Calculate price change and percentage change."""
+        if previous_price == 0:
+            raise ValueError("Previous price cannot be zero")
+        
+        change = current_price - previous_price
+        change_percent = (change / previous_price) * 100
+        return change, change_percent
