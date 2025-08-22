@@ -1,51 +1,6 @@
 """Basic tests for Sprint 1 functionality."""
 
-import pytest
-import sys
-import os
-
-# Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-from web_server.app import app
-from models.database import get_db, Base
-from models.portfolio import Portfolio, Holding
-
-
-# Test database setup
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-
-def override_get_db():
-    """Override database dependency for testing."""
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
-
-
-@pytest.fixture(scope="function")
-def test_db():
-    """Create test database for each test."""
-    Base.metadata.create_all(bind=engine)
-    yield
-    Base.metadata.drop_all(bind=engine)
-
-
-@pytest.fixture
-def client():
-    """Create test client."""
-    return TestClient(app)
+# Test configuration is now in conftest.py
 
 
 def test_health_check(client):

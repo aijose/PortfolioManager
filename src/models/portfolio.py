@@ -1,9 +1,14 @@
 """Portfolio, Holding, Watchlist, and WatchedItem database models."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from models.database import Base
+
+
+def utc_now():
+    """Helper function to get timezone-aware UTC datetime."""
+    return datetime.now(timezone.utc)
 
 
 class Portfolio(Base):
@@ -13,8 +18,8 @@ class Portfolio(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False, index=True)
-    created_date = Column(DateTime, default=datetime.utcnow, nullable=False)
-    modified_date = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_date = Column(DateTime, default=utc_now, nullable=False)
+    modified_date = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
     
     # Relationship to holdings
     holdings = relationship("Holding", back_populates="portfolio", cascade="all, delete-orphan")
@@ -74,8 +79,8 @@ class Watchlist(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False, index=True)
-    created_date = Column(DateTime, default=datetime.utcnow, nullable=False)
-    modified_date = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_date = Column(DateTime, default=utc_now, nullable=False)
+    modified_date = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
     
     # Relationship to watched items
     watched_items = relationship("WatchedItem", back_populates="watchlist", cascade="all, delete-orphan")
@@ -94,7 +99,7 @@ class WatchedItem(Base):
     symbol = Column(String(10), nullable=False, index=True)
     notes = Column(String(500), nullable=True)  # Optional notes about why tracking this stock
     last_price = Column(Float, nullable=True)  # Last fetched price
-    added_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    added_date = Column(DateTime, default=utc_now, nullable=False)
     news_data = Column(JSON, nullable=True)  # Cached news articles from Polygon.io
     last_news_update = Column(DateTime, nullable=True)  # Last time news was fetched
     order_index = Column(Integer, nullable=False, default=0)  # Order position in watchlist

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from models.database import get_db
 from controllers.watchlist_controller import (
@@ -343,7 +343,7 @@ async def get_item_news(watchlist_id: int, symbol: str, db: Session = Depends(ge
     # Update cache if we fetched fresh news
     if was_fetched and articles:
         watched_item.news_data = news_controller.format_news_for_storage(articles)
-        watched_item.last_news_update = datetime.utcnow()
+        watched_item.last_news_update = datetime.now(timezone.utc)
         db.commit()
     
     return {
@@ -376,7 +376,7 @@ async def refresh_item_news(watchlist_id: int, symbol: str, db: Session = Depend
     # Update cache
     if articles:
         watched_item.news_data = news_controller.format_news_for_storage(articles)
-        watched_item.last_news_update = datetime.utcnow()
+        watched_item.last_news_update = datetime.now(timezone.utc)
         db.commit()
         
         return {

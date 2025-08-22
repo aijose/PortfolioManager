@@ -3,7 +3,7 @@
 import csv
 import io
 from typing import List, Dict, Any, Tuple
-from pydantic import BaseModel, validator, ValidationError
+from pydantic import BaseModel, field_validator, ValidationError
 
 
 class CSVHoldingData(BaseModel):
@@ -12,7 +12,8 @@ class CSVHoldingData(BaseModel):
     shares: float
     allocation: float
     
-    @validator('symbol')
+    @field_validator('symbol')
+    @classmethod
     def symbol_must_be_valid(cls, v):
         if not v or not v.strip():
             raise ValueError('Symbol cannot be empty')
@@ -23,13 +24,15 @@ class CSVHoldingData(BaseModel):
             raise ValueError('Symbol must contain only letters and numbers')
         return symbol
     
-    @validator('shares')
+    @field_validator('shares')
+    @classmethod
     def shares_must_be_non_negative(cls, v):
         if v < 0:
             raise ValueError('Shares must be non-negative')
         return v
     
-    @validator('allocation')
+    @field_validator('allocation')
+    @classmethod
     def allocation_must_be_valid(cls, v):
         if v <= 0 or v > 100:
             raise ValueError('Allocation must be between 0.01 and 100')

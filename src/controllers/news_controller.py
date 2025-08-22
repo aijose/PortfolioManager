@@ -3,7 +3,7 @@
 import os
 import time
 from typing import Dict, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 from dataclasses import dataclass
 
@@ -239,7 +239,7 @@ class NewsController:
                     
                     pub_date = content.get('pubDate', '')
                     if not pub_date:
-                        pub_date = datetime.utcnow().isoformat() + 'Z'
+                        pub_date = datetime.now(timezone.utc).isoformat() + 'Z'
                     
                     provider = content.get('provider', {})
                     source_name = provider.get('displayName', 'Yahoo Finance')
@@ -298,13 +298,13 @@ class NewsController:
         """Check if cached news is still valid (within cache duration)."""
         if not last_update:
             return False
-        return datetime.utcnow() - last_update < self.cache_duration
+        return datetime.now(timezone.utc) - last_update < self.cache_duration
     
     def format_news_for_storage(self, articles: List[NewsArticle]) -> dict:
         """Format news articles for JSON storage in database."""
         return {
             "articles": [article.to_dict() for article in articles],
-            "last_updated": datetime.utcnow().isoformat()
+            "last_updated": datetime.now(timezone.utc).isoformat()
         }
     
     def parse_stored_news(self, news_data: Optional[dict]) -> List[NewsArticle]:

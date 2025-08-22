@@ -3,7 +3,7 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from models.portfolio import Watchlist, WatchedItem
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 from controllers.stock_data_controller import StockDataController
 
 
@@ -11,7 +11,8 @@ class WatchlistCreate(BaseModel):
     """Schema for creating a new watchlist."""
     name: str
     
-    @validator('name')
+    @field_validator('name')
+    @classmethod
     def name_must_not_be_empty(cls, v):
         if not v or not v.strip():
             raise ValueError('Watchlist name cannot be empty')
@@ -22,7 +23,8 @@ class WatchlistUpdate(BaseModel):
     """Schema for updating a watchlist."""
     name: str
     
-    @validator('name')
+    @field_validator('name')
+    @classmethod
     def name_must_not_be_empty(cls, v):
         if not v or not v.strip():
             raise ValueError('Watchlist name cannot be empty')
@@ -34,13 +36,15 @@ class WatchedItemCreate(BaseModel):
     symbol: str
     notes: Optional[str] = None
     
-    @validator('symbol')
+    @field_validator('symbol')
+    @classmethod
     def symbol_must_be_valid(cls, v):
         if not v or not v.strip():
             raise ValueError('Symbol cannot be empty')
         return v.strip().upper()
     
-    @validator('notes')
+    @field_validator('notes')
+    @classmethod
     def notes_length_check(cls, v):
         if v and len(v) > 500:
             raise ValueError('Notes cannot exceed 500 characters')
@@ -51,7 +55,8 @@ class WatchedItemUpdate(BaseModel):
     """Schema for updating a watched item."""
     notes: Optional[str] = None
     
-    @validator('notes')
+    @field_validator('notes')
+    @classmethod
     def notes_length_check(cls, v):
         if v and len(v) > 500:
             raise ValueError('Notes cannot exceed 500 characters')

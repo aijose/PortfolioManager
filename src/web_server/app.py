@@ -1,6 +1,7 @@
 """FastAPI application for Portfolio Manager."""
 
 import os
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Depends, HTTPException, Form, UploadFile, File
 
@@ -36,11 +37,20 @@ from web_server.routes.stock_data import router as stock_data_router
 from web_server.routes.rebalancing import router as rebalancing_router
 from web_server.routes.watchlists import router as watchlists_router
 
+# Lifespan function for startup/shutdown events
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Create database tables
+    create_tables()
+    yield
+    # Shutdown: Could add cleanup here if needed
+
 # Create FastAPI app
 app = FastAPI(
     title="Portfolio Manager",
     description="A web-based stock portfolio management and rebalancing application",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan
 )
 
 # Include API routers
@@ -59,10 +69,7 @@ app.mount("/static", StaticFiles(directory=os.path.join(PROJECT_ROOT, "web_serve
 # Setup templates
 templates = Jinja2Templates(directory=os.path.join(PROJECT_ROOT, "web_server", "templates"))
 
-# Create database tables on startup
-@app.on_event("startup")
-async def startup_event():
-    create_tables()
+# Database tables are now created in the lifespan function
 
 
 # Home page - redirect to portfolios

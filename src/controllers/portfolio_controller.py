@@ -3,7 +3,7 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from models.portfolio import Portfolio, Holding
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 from controllers.stock_data_controller import StockDataController
 
 
@@ -11,7 +11,8 @@ class PortfolioCreate(BaseModel):
     """Schema for creating a new portfolio."""
     name: str
     
-    @validator('name')
+    @field_validator('name')
+    @classmethod
     def name_must_not_be_empty(cls, v):
         if not v or not v.strip():
             raise ValueError('Portfolio name cannot be empty')
@@ -22,7 +23,8 @@ class PortfolioUpdate(BaseModel):
     """Schema for updating a portfolio."""
     name: str
     
-    @validator('name')
+    @field_validator('name')
+    @classmethod
     def name_must_not_be_empty(cls, v):
         if not v or not v.strip():
             raise ValueError('Portfolio name cannot be empty')
@@ -35,19 +37,22 @@ class HoldingCreate(BaseModel):
     shares: float
     target_allocation: float
     
-    @validator('symbol')
+    @field_validator('symbol')
+    @classmethod
     def symbol_must_be_valid(cls, v):
         if not v or not v.strip():
             raise ValueError('Symbol cannot be empty')
         return v.strip().upper()
     
-    @validator('shares')
+    @field_validator('shares')
+    @classmethod
     def shares_must_be_positive(cls, v):
         if v < 0:
             raise ValueError('Shares must be non-negative')
         return v
     
-    @validator('target_allocation')
+    @field_validator('target_allocation')
+    @classmethod
     def allocation_must_be_valid(cls, v):
         if v <= 0 or v > 100:
             raise ValueError('Target allocation must be between 0.01 and 100')
@@ -59,13 +64,15 @@ class HoldingUpdate(BaseModel):
     shares: float
     target_allocation: float
     
-    @validator('shares')
+    @field_validator('shares')
+    @classmethod
     def shares_must_be_positive(cls, v):
         if v < 0:
             raise ValueError('Shares must be non-negative')
         return v
     
-    @validator('target_allocation')
+    @field_validator('target_allocation')
+    @classmethod
     def allocation_must_be_valid(cls, v):
         if v <= 0 or v > 100:
             raise ValueError('Target allocation must be between 0.01 and 100')
