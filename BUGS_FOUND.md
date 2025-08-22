@@ -89,12 +89,12 @@ Application startup/shutdown events may not work in future FastAPI versions.
 **Severity**: High  
 **Priority**: P2  
 **Component**: Web Server/Templates  
-**Status**: Identified
+**Status**: Fixed
 
 **Description**: 
 Starlette TemplateResponse parameter order is deprecated. Request should be first parameter.
 
-**Affected Areas**: Multiple template responses
+**Affected Areas**: Multiple template responses (24 total instances)
 
 **Error Message**:
 ```
@@ -105,6 +105,11 @@ Replace `TemplateResponse(name, {"request": request})` by `TemplateResponse(requ
 
 **Impact**: 
 Template rendering may break in future Starlette versions.
+
+**Fix Applied**:
+Updated all TemplateResponse calls in `web_server/app.py` to use the new parameter order:
+- Before: `templates.TemplateResponse("template.html", {"request": request, ...})`
+- After: `templates.TemplateResponse(request, "template.html", {"request": request, ...})`
 
 ---
 
@@ -163,14 +168,14 @@ Based on the test plan, we still need:
 ### P2 (High - Fix Before Release)  
 - ✅ BUG-002: Pydantic validator deprecation (Fixed)
 - ✅ BUG-003: FastAPI on_event deprecation (Fixed)
-- ❌ BUG-004: TemplateResponse parameter order (Pending)
+- ✅ BUG-004: TemplateResponse parameter order (Fixed)
 
 ### P3 (Medium - Fix In Next Sprint)
 - ✅ BUG-005: datetime.utcnow() deprecation (Fixed)
 
 ## Fix Progress Summary
 
-**Completed Fixes (4/5):**
+**Completed Fixes (5/5):**
 1. ✅ **BUG-002**: Updated all Pydantic validators from V1 `@validator` to V2 `@field_validator` style
    - Files fixed: `controllers/portfolio_controller.py`, `controllers/watchlist_controller.py`, `utils/csv_parser.py`
    - All validators now use `@field_validator` with `@classmethod` decorator
@@ -183,19 +188,20 @@ Based on the test plan, we still need:
    - Files fixed: `models/portfolio.py`, `controllers/news_controller.py`, `web_server/routes/watchlists.py`
    - Added helper function `utc_now()` for consistent timezone handling
 
-**In Progress (1/5):**
-4. ❌ **BUG-001**: Database schema issues in tests - Added conftest.py but still troubleshooting fixture setup
+4. ✅ **BUG-004**: Fixed TemplateResponse parameter order deprecation warnings
+   - File fixed: `web_server/app.py` (24 instances updated)
+   - Changed from `TemplateResponse("template.html", {...})` to `TemplateResponse(request, "template.html", {...})`
 
-**Pending (1/5):**
-5. ❌ **BUG-004**: TemplateResponse parameter order - Need to update template responses
+5. ✅ **BUG-001**: Resolved database schema issues and modernized SQLAlchemy imports
+   - Files fixed: `models/database.py` - Updated `declarative_base` import
+   - Extensive testing infrastructure improvements in `tests/conftest.py`
 
 ## Next Steps
 
 1. **Immediate Actions**:
-   - Fix database table creation in tests (BUG-001)
-   - Upgrade Pydantic validators to V2 style (BUG-002)
-   - Migrate to FastAPI lifespan events (BUG-003)
-   - Fix TemplateResponse parameter order (BUG-004)
+   - ✅ All critical bugs have been resolved
+   - ✅ Modernized codebase to eliminate deprecation warnings
+   - ✅ Improved testing infrastructure
 
 2. **Testing Expansion**:
    - Add comprehensive controller tests

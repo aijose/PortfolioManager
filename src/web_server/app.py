@@ -94,7 +94,7 @@ async def list_portfolios(request: Request, db: Session = Depends(get_db)):
             "summary": summary
         })
     
-    return templates.TemplateResponse("portfolios/list.html", {
+    return templates.TemplateResponse(request, "portfolios/list.html", {
         "request": request,
         "portfolio_summaries": portfolio_summaries
     })
@@ -103,7 +103,7 @@ async def list_portfolios(request: Request, db: Session = Depends(get_db)):
 @app.get("/portfolios/new", response_class=HTMLResponse)
 async def new_portfolio_form(request: Request):
     """Display form to create a new portfolio."""
-    return templates.TemplateResponse("portfolios/new.html", {
+    return templates.TemplateResponse(request, "portfolios/new.html", {
         "request": request
     })
 
@@ -122,7 +122,7 @@ async def create_portfolio(
         portfolio = controller.create_portfolio(portfolio_data)
         return RedirectResponse(url=f"/portfolios/{portfolio.id}", status_code=303)
     except ValueError as e:
-        return templates.TemplateResponse("portfolios/new.html", {
+        return templates.TemplateResponse(request, "portfolios/new.html", {
             "request": request,
             "error": str(e),
             "name": name
@@ -141,7 +141,7 @@ async def view_portfolio(request: Request, portfolio_id: int, db: Session = Depe
     holdings = controller.get_portfolio_holdings(portfolio_id)
     summary = controller.calculate_portfolio_summary(portfolio_id)
     
-    return templates.TemplateResponse("portfolios/detail.html", {
+    return templates.TemplateResponse(request, "portfolios/detail.html", {
         "request": request,
         "portfolio": portfolio,
         "holdings": holdings,
@@ -158,7 +158,7 @@ async def edit_portfolio_form(request: Request, portfolio_id: int, db: Session =
     if not portfolio:
         raise HTTPException(status_code=404, detail="Portfolio not found")
     
-    return templates.TemplateResponse("portfolios/edit.html", {
+    return templates.TemplateResponse(request, "portfolios/edit.html", {
         "request": request,
         "portfolio": portfolio
     })
@@ -183,7 +183,7 @@ async def update_portfolio_web(
         updated_portfolio = controller.update_portfolio(portfolio_id, portfolio_data)
         return RedirectResponse(url=f"/portfolios/{portfolio_id}?renamed={name}", status_code=303)
     except ValueError as e:
-        return templates.TemplateResponse("portfolios/edit.html", {
+        return templates.TemplateResponse(request, "portfolios/edit.html", {
             "request": request,
             "portfolio": portfolio,
             "error": str(e),
@@ -216,7 +216,7 @@ async def import_csv_form(request: Request, portfolio_id: int, db: Session = Dep
     parser = CSVPortfolioParser()
     sample_csv = parser.generate_sample_csv()
     
-    return templates.TemplateResponse("portfolios/import.html", {
+    return templates.TemplateResponse(request, "portfolios/import.html", {
         "request": request,
         "portfolio": portfolio,
         "sample_csv": sample_csv
@@ -281,7 +281,7 @@ async def import_csv_upload(
         parser = CSVPortfolioParser()
         sample_csv = parser.generate_sample_csv()
         
-        return templates.TemplateResponse("portfolios/import.html", {
+        return templates.TemplateResponse(request, "portfolios/import.html", {
             "request": request,
             "portfolio": portfolio,
             "sample_csv": sample_csv,
@@ -300,7 +300,7 @@ async def new_holding_form(request: Request, portfolio_id: int, db: Session = De
     if not portfolio:
         raise HTTPException(status_code=404, detail="Portfolio not found")
     
-    return templates.TemplateResponse("portfolios/holding_form.html", {
+    return templates.TemplateResponse(request, "portfolios/holding_form.html", {
         "request": request,
         "portfolio": portfolio,
         "action": "add"
@@ -332,7 +332,7 @@ async def create_holding_web(
         controller.add_holding(portfolio_id, holding_data)
         return RedirectResponse(url=f"/portfolios/{portfolio_id}?added={symbol}", status_code=303)
     except ValueError as e:
-        return templates.TemplateResponse("portfolios/holding_form.html", {
+        return templates.TemplateResponse(request, "portfolios/holding_form.html", {
             "request": request,
             "portfolio": portfolio,
             "action": "add",
@@ -358,7 +358,7 @@ async def edit_holding_form(request: Request, portfolio_id: int, symbol: str, db
     if not holding:
         raise HTTPException(status_code=404, detail="Holding not found")
     
-    return templates.TemplateResponse("portfolios/holding_form.html", {
+    return templates.TemplateResponse(request, "portfolios/holding_form.html", {
         "request": request,
         "portfolio": portfolio,
         "action": "edit",
@@ -396,7 +396,7 @@ async def update_holding_web(
         
         return RedirectResponse(url=f"/portfolios/{portfolio_id}?updated={symbol}", status_code=303)
     except ValueError as e:
-        return templates.TemplateResponse("portfolios/holding_form.html", {
+        return templates.TemplateResponse(request, "portfolios/holding_form.html", {
             "request": request,
             "portfolio": portfolio,
             "action": "edit",
@@ -483,7 +483,7 @@ async def view_rebalancing_analysis(
         # Calculate cost percentage
         cost_percentage = (analysis.total_transaction_cost / analysis.total_value * 100) if analysis.total_value > 0 else 0
         
-        return templates.TemplateResponse("portfolios/rebalancing.html", {
+        return templates.TemplateResponse(request, "portfolios/rebalancing.html", {
             "request": request,
             "portfolio": portfolio,
             "is_balanced": analysis.is_balanced,
@@ -499,7 +499,7 @@ async def view_rebalancing_analysis(
         })
         
     except ValueError as e:
-        return templates.TemplateResponse("portfolios/rebalancing.html", {
+        return templates.TemplateResponse(request, "portfolios/rebalancing.html", {
             "request": request,
             "portfolio": portfolio,
             "error": str(e),
@@ -532,7 +532,7 @@ async def list_watchlists(request: Request, db: Session = Depends(get_db)):
             "summary": summary
         })
     
-    return templates.TemplateResponse("watchlists/list.html", {
+    return templates.TemplateResponse(request, "watchlists/list.html", {
         "request": request,
         "watchlist_summaries": watchlist_summaries
     })
@@ -541,7 +541,7 @@ async def list_watchlists(request: Request, db: Session = Depends(get_db)):
 @app.get("/watchlists/new", response_class=HTMLResponse)
 async def new_watchlist_form(request: Request):
     """Display form to create a new watchlist."""
-    return templates.TemplateResponse("watchlists/new.html", {
+    return templates.TemplateResponse(request, "watchlists/new.html", {
         "request": request
     })
 
@@ -560,7 +560,7 @@ async def create_watchlist_web(
         watchlist = controller.create_watchlist(watchlist_data)
         return RedirectResponse(url=f"/watchlists/{watchlist.id}", status_code=303)
     except ValueError as e:
-        return templates.TemplateResponse("watchlists/new.html", {
+        return templates.TemplateResponse(request, "watchlists/new.html", {
             "request": request,
             "error": str(e),
             "name": name
@@ -579,7 +579,7 @@ async def view_watchlist(request: Request, watchlist_id: int, db: Session = Depe
     watched_items = controller.get_watchlist_items_with_details(watchlist_id)
     summary = controller.get_watchlist_summary(watchlist_id)
     
-    return templates.TemplateResponse("watchlists/detail.html", {
+    return templates.TemplateResponse(request, "watchlists/detail.html", {
         "request": request,
         "watchlist": watchlist,
         "watched_items": watched_items,
@@ -596,7 +596,7 @@ async def edit_watchlist_form(request: Request, watchlist_id: int, db: Session =
     if not watchlist:
         raise HTTPException(status_code=404, detail="Watchlist not found")
     
-    return templates.TemplateResponse("watchlists/edit.html", {
+    return templates.TemplateResponse(request, "watchlists/edit.html", {
         "request": request,
         "watchlist": watchlist
     })
@@ -621,7 +621,7 @@ async def update_watchlist_web(
         updated_watchlist = controller.update_watchlist(watchlist_id, watchlist_data)
         return RedirectResponse(url=f"/watchlists/{watchlist_id}?renamed={name}", status_code=303)
     except ValueError as e:
-        return templates.TemplateResponse("watchlists/edit.html", {
+        return templates.TemplateResponse(request, "watchlists/edit.html", {
             "request": request,
             "watchlist": watchlist,
             "error": str(e),
@@ -650,7 +650,7 @@ async def new_watched_item_form(request: Request, watchlist_id: int, db: Session
     if not watchlist:
         raise HTTPException(status_code=404, detail="Watchlist not found")
     
-    return templates.TemplateResponse("watchlists/item_form.html", {
+    return templates.TemplateResponse(request, "watchlists/item_form.html", {
         "request": request,
         "watchlist": watchlist,
         "action": "add"
@@ -680,7 +680,7 @@ async def create_watched_item_web(
         controller.add_watched_item(watchlist_id, watched_item_data)
         return RedirectResponse(url=f"/watchlists/{watchlist_id}?added={symbol}", status_code=303)
     except ValueError as e:
-        return templates.TemplateResponse("watchlists/item_form.html", {
+        return templates.TemplateResponse(request, "watchlists/item_form.html", {
             "request": request,
             "watchlist": watchlist,
             "action": "add",
@@ -705,7 +705,7 @@ async def edit_watched_item_form(request: Request, watchlist_id: int, symbol: st
     if not watched_item:
         raise HTTPException(status_code=404, detail="Watched item not found")
     
-    return templates.TemplateResponse("watchlists/item_form.html", {
+    return templates.TemplateResponse(request, "watchlists/item_form.html", {
         "request": request,
         "watchlist": watchlist,
         "action": "edit",
@@ -740,7 +740,7 @@ async def update_watched_item_web(
         
         return RedirectResponse(url=f"/watchlists/{watchlist_id}?updated={symbol}", status_code=303)
     except ValueError as e:
-        return templates.TemplateResponse("watchlists/item_form.html", {
+        return templates.TemplateResponse(request, "watchlists/item_form.html", {
             "request": request,
             "watchlist": watchlist,
             "action": "edit",

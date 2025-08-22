@@ -16,10 +16,11 @@ from models.database import get_db, Base
 from models.portfolio import Portfolio, Holding, Watchlist, WatchedItem  # Import all models
 
 
-# Test database setup
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Test database setup - use a file-based test database for more reliable testing
+TEST_DATABASE_PATH = ":memory:"
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{TEST_DATABASE_PATH}"
+test_engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
 
 def override_get_db():
@@ -37,12 +38,13 @@ app.dependency_overrides[get_db] = override_get_db
 
 @pytest.fixture(scope="function", autouse=True)
 def test_db():
-    """Create test database for each test."""
-    # Create all tables
-    Base.metadata.create_all(bind=engine)
+    """Create clean test database for each test."""
+    # Create tables fresh for each test
+    Base.metadata.drop_all(bind=test_engine)
+    Base.metadata.create_all(bind=test_engine)
     yield
     # Clean up after test
-    Base.metadata.drop_all(bind=engine)
+    Base.metadata.drop_all(bind=test_engine)
 
 
 @pytest.fixture

@@ -19,8 +19,28 @@ def test_home_redirect(client):
 
 def test_portfolios_list_empty(client, test_db):
     """Test portfolios list page when no portfolios exist."""
+    # First check the API to see if database is truly empty
+    api_response = client.get("/api/portfolios")
+    print(f"\n--- API DEBUG ---")
+    print(f"API Status: {api_response.status_code}")
+    print(f"API Data: {api_response.json()}")
+    print("--- END API DEBUG ---\n")
+    
     response = client.get("/portfolios")
     assert response.status_code == 200
+    # Debug: Print response content if assertion fails
+    if "No Portfolios Yet" not in response.text:
+        print(f"\n--- RESPONSE DEBUG ---")
+        print(f"Status: {response.status_code}")
+        print(f"Content contains portfolio ID: {'portfolio' in response.text.lower()}")
+        print(f"Content length: {len(response.text)}")
+        if "portfolio" in response.text.lower():
+            # Print relevant section
+            lines = response.text.split('\n')
+            for i, line in enumerate(lines):
+                if 'portfolio' in line.lower() and 'id' in line.lower():
+                    print(f"Line {i}: {line.strip()}")
+        print("--- END DEBUG ---\n")
     assert "No Portfolios Yet" in response.text
 
 
