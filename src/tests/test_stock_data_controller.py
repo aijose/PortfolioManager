@@ -51,8 +51,8 @@ def test_get_current_price_invalid_symbol(mock_stock_controller):
 
 def test_get_current_price_network_error(mock_stock_controller):
     """Test current price retrieval with network error."""
-    with patch('yfinance.download') as mock_download:
-        mock_download.side_effect = Exception("Network error")
+    with patch('yfinance.Ticker') as mock_ticker:
+        mock_ticker.side_effect = Exception("Network error")
         
         price = mock_stock_controller.get_current_price("AAPL")
         
@@ -83,7 +83,7 @@ def test_get_multiple_current_prices(mock_stock_controller):
 
 def test_get_historical_prices_success(mock_stock_controller):
     """Test successful historical price retrieval."""
-    with patch('yfinance.download') as mock_download:
+    with patch('yfinance.Ticker') as mock_ticker:
         # Create mock DataFrame with historical data
         import pandas as pd
         import numpy as np
@@ -97,7 +97,9 @@ def test_get_historical_prices_success(mock_stock_controller):
             'Volume': np.random.randint(1000000, 5000000, 30)
         }, index=dates)
         
-        mock_download.return_value = mock_df
+        mock_ticker_instance = Mock()
+        mock_ticker_instance.history.return_value = mock_df
+        mock_ticker.return_value = mock_ticker_instance
         
         end_date = date.today()
         start_date = end_date - timedelta(days=30)
@@ -105,16 +107,19 @@ def test_get_historical_prices_success(mock_stock_controller):
         historical_data = mock_stock_controller.get_historical_prices("AAPL", start_date, end_date)
         
         assert historical_data is not None
-        assert len(historical_data) == 30
-        assert 'Close' in historical_data.columns
+        assert len(historical_data['data']) == 30
+        assert 'symbol' in historical_data
+        assert historical_data['symbol'] == 'AAPL'
 
 
 def test_get_historical_prices_invalid_symbol(mock_stock_controller):
     """Test historical price retrieval with invalid symbol."""
-    with patch('yfinance.download') as mock_download:
+    with patch('yfinance.Ticker') as mock_ticker:
         mock_df = Mock()
         mock_df.empty = True
-        mock_download.return_value = mock_df
+        mock_ticker_instance = Mock()
+        mock_ticker_instance.history.return_value = mock_df
+        mock_ticker.return_value = mock_ticker_instance
         
         end_date = date.today()
         start_date = end_date - timedelta(days=30)
@@ -176,9 +181,7 @@ def test_get_stock_info_invalid_symbol(mock_stock_controller):
 def test_get_stock_info_network_error(mock_stock_controller):
     """Test stock info retrieval with network error."""
     with patch('yfinance.Ticker') as mock_ticker_class:
-        mock_ticker = Mock()
-        mock_ticker.info.side_effect = Exception("Network error")
-        mock_ticker_class.return_value = mock_ticker
+        mock_ticker_class.side_effect = Exception("Network error")
         
         info = mock_stock_controller.get_stock_info("AAPL")
         
@@ -220,7 +223,7 @@ def test_get_market_data_batch(mock_stock_controller):
     """Test getting market data for multiple symbols in batch."""
     symbols = ["AAPL", "GOOGL", "MSFT"]
     
-    with patch('yfinance.download') as mock_download:
+    with patch('yfinance.Ticker') as mock_ticker:
         # Mock batch download
         import pandas as pd
         import numpy as np
@@ -330,7 +333,7 @@ def test_error_handling_robustness(mock_stock_controller):
     ]
     
     for symbol, error in test_cases:
-        with patch('yfinance.download') as mock_download:
+        with patch('yfinance.Ticker') as mock_ticker:
             mock_download.side_effect = error
             
             # Should not raise exception, should return None gracefully
