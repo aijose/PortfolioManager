@@ -380,3 +380,11 @@ class RebalancingController:
             "holdings_count": len(holdings),
             "holdings_with_prices": len([h for h in holdings if h.last_price])
         }
+    
+    def _calculate_allocation_drift(self, current_allocation: float, target_allocation: float) -> float:
+        """Calculate simple allocation drift (current - target)."""
+        return current_allocation - target_allocation
+    
+    def _calculate_transaction_cost(self, trade_value: float) -> float:
+        """Calculate transaction cost for a trade value."""
+        return abs(trade_value) * self.transaction_cost_rate

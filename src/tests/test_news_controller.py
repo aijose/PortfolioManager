@@ -163,11 +163,19 @@ def test_polygon_news_parsing(mock_news_controller):
         ]
     }
     
-    with patch('requests.get') as mock_get:
-        mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = mock_polygon_response
-        mock_get.return_value = mock_response
+    with patch('polygon.RESTClient') as mock_polygon_client:
+        # Mock the client instance and its response
+        mock_client_instance = Mock()
+        mock_client_instance.list_ticker_news.return_value = [
+            Mock(
+                title="Test News Article",
+                article_url="https://example.com/test-article", 
+                published_utc="2024-01-15T10:30:00Z",
+                description="This is a test article description",
+                publisher=Mock(name="Polygon.io")
+            )
+        ]
+        mock_polygon_client.return_value = mock_client_instance
         
         news = mock_news_controller.get_ticker_news("AAPL")
         
