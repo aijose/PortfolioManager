@@ -234,6 +234,37 @@ This document outlines a step-by-step implementation plan for building the Stock
    - Keyboard shortcuts for power users
    - Auto-save functionality
 
+### Phase 5.5: Market News Integration (Week 5.5-6) - **COMPLETED**
+
+#### 5.5.1 News Controller Development
+**Priority: High** (Completed)
+
+1. **Multi-Source News Controller**
+   - Polygon.io API integration with rate limiting
+   - Yahoo Finance fallback news source
+   - Mock data source for testing scenarios
+   - Intelligent source switching on failures
+
+2. **News Data Management**
+   - NewsArticle data class for consistent structure
+   - 4-hour caching system for news articles
+   - Database storage of cached news data
+   - Automatic cache expiration handling
+
+#### 5.5.2 Watchlist News Integration
+**Priority: High** (Completed)
+
+1. **API Endpoints**
+   - `GET /api/watchlists/{id}/items/{symbol}/news` - Cached/fresh news
+   - `POST /api/watchlists/{id}/items/{symbol}/refresh-news` - Force refresh
+   - News validation and error handling
+
+2. **Frontend Integration**
+   - Expandable news sections in watchlist detail view
+   - "Expand All News" toggle for bulk operations
+   - Individual news toggle buttons per stock
+   - Loading indicators and error states
+
 ### Phase 6: Advanced Features (Week 6-7)
 
 #### 6.1 Export Functionality
@@ -320,11 +351,12 @@ This document outlines a step-by-step implementation plan for building the Stock
 3. Rebalancing interface
 4. Transaction execution
 
-### Sprint 5 (Week 5): UI Polish
+### Sprint 5 (Week 5): UI Polish & News Integration
 1. Dashboard enhancement
 2. Interactive charts
 3. Responsive design
 4. User experience improvements
+5. **Market news integration (COMPLETED)**
 
 ### Sprint 6 (Week 6): Advanced Features
 1. Export functionality

@@ -4,7 +4,7 @@ A modern web-based stock portfolio management and rebalancing application built 
 
 ## Features
 
-### Completed Features (Sprints 1-3)
+### Completed Features (Sprints 1-5)
 
 - **Portfolio Management**: Create and manage multiple named portfolios
 - **Holdings Management**: Add, edit, and delete stock holdings with shares and target allocations
@@ -15,8 +15,12 @@ A modern web-based stock portfolio management and rebalancing application built 
 - **Interactive Web Interface**: Responsive Bootstrap-based UI with loading indicators
 - **Portfolio Analytics**: Valuation calculations and allocation analysis
 - **Data Validation**: Comprehensive validation for symbols, shares, and allocations
+- **Watchlist Management**: Create and manage stock watchlists for monitoring
+- **Market News Integration**: Multi-source news feed with Polygon.io, Yahoo Finance, and fallback options
+- **News Caching System**: 4-hour cache duration with automatic refresh capabilities
+- **Interactive News Display**: Expandable news sections with bulk toggle operations
 
-### 🚀 Upcoming Features (Sprints 4-7)
+### 🚀 Upcoming Features (Sprints 6-7)
 
 - **Portfolio Rebalancing Engine**: Calculate buy/sell recommendations
 - **Enhanced UI**: Charts, graphs, and advanced portfolio visualizations
@@ -127,6 +131,23 @@ NVDA,30,10.0
 - **Individual**: Click the refresh button next to any holding
 - **Bulk**: Click "Refresh Prices" to update all holdings at once
 
+### Market News Features
+
+#### Viewing Stock News
+- Navigate to any watchlist to see news for tracked stocks
+- Click "Show News" next to any stock to expand news articles
+- Use "Expand All News" to view news for all stocks at once
+
+#### News Sources
+- **Primary**: Polygon.io API (requires POLYGON_API_KEY environment variable)
+- **Fallback**: Yahoo Finance news data
+- **Testing**: Mock news data when APIs are unavailable
+
+#### News Caching
+- News articles are cached for 4 hours to improve performance
+- Manual refresh available with "Refresh News" button
+- Automatic fallback between news sources if one fails
+
 ## Project Structure
 
 ```
@@ -176,6 +197,21 @@ PortfolioManager/
 - `POST /api/stocks/prices` - Get multiple stock prices
 - `POST /api/stocks/validate` - Validate stock symbols
 - `GET /api/stocks/market-summary` - Market indices summary
+
+### Watchlist Management
+
+- `GET /api/watchlists` - List all watchlists
+- `POST /api/watchlists` - Create new watchlist
+- `GET /api/watchlists/{id}` - Get watchlist details
+- `DELETE /api/watchlists/{id}` - Delete watchlist
+- `GET /api/watchlists/{id}/items` - List watched items
+- `POST /api/watchlists/{id}/items` - Add watched item
+
+### Market News
+
+- `GET /api/watchlists/{id}/items/{symbol}/news` - Get cached or fresh news
+- `POST /api/watchlists/{id}/items/{symbol}/refresh-news` - Force refresh news
+- `GET /api/watchlists/{id}/items/{symbol}/test-news` - Test news connectivity
 
 ## Development
 

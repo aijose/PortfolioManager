@@ -141,12 +141,54 @@ A Python-based portfolio management application that enables individual investor
 - Real-time portfolio overview
 - Key performance indicators
 - Recent transactions summary
-- Market news integration (optional)
+- Market news integration
 
 #### 2.4.2 Interactive Charts
 - Candlestick charts for individual stocks
 - Portfolio performance comparison against benchmarks (S&P 500, etc.)
 - Interactive time series for historical analysis
+
+### 2.5 Market News Integration
+
+#### 2.5.1 Multi-Source News Feed
+**Priority: High** (Completed)
+
+- **News Sources**: 
+  - Primary: Polygon.io API with rate limiting
+  - Fallback: Yahoo Finance news data
+  - Mock data for testing and offline scenarios
+
+- **Stock-Specific News**:
+  - Fetch news articles for individual ticker symbols
+  - Display latest 5 articles per stock
+  - Article metadata (title, URL, published date, source)
+  - Article summaries (up to 200 characters)
+
+- **Caching System**:
+  - 4-hour cache duration for news articles
+  - Automatic refresh when cache expires
+  - Manual refresh capability for real-time updates
+  - Database storage of cached news data
+
+#### 2.5.2 Watchlist News Integration
+**Priority: High** (Completed)
+
+- **News Display in Watchlists**:
+  - Expandable news sections for each watched stock
+  - Toggle individual news sections or expand/collapse all
+  - Loading indicators during news fetching
+  - Error handling for failed news requests
+
+- **News API Endpoints**:
+  - `GET /api/watchlists/{id}/items/{symbol}/news` - Get cached or fresh news
+  - `POST /api/watchlists/{id}/items/{symbol}/refresh-news` - Force refresh
+  - Rate limiting and intelligent fallback between sources
+
+- **User Interface Features**:
+  - "Expand All News" button for bulk operations
+  - Individual "Show/Hide News" toggles per stock
+  - News article cards with source attribution
+  - Published date formatting and display
 
 ## 3. Technical Requirements
 
