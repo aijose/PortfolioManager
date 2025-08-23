@@ -298,7 +298,15 @@ class NewsController:
         """Check if cached news is still valid (within cache duration)."""
         if not last_update:
             return False
-        return datetime.now(timezone.utc) - last_update < self.cache_duration
+        
+        # Ensure both datetimes are timezone-aware for comparison
+        current_time = datetime.now(timezone.utc)
+        
+        # If last_update is naive, assume it's UTC
+        if last_update.tzinfo is None:
+            last_update = last_update.replace(tzinfo=timezone.utc)
+        
+        return current_time - last_update < self.cache_duration
     
     def format_news_for_storage(self, articles: List[NewsArticle]) -> dict:
         """Format news articles for JSON storage in database."""
@@ -337,13 +345,17 @@ class NewsController:
         Returns:
             Tuple of (articles, was_fetched_fresh)
         """
-        # Check if cache is valid
+        # Check if cache is valid AND not mock data
         if self.is_news_cache_valid(last_update) and cached_news:
-            logger.info(f"Using cached news for {symbol}")
+            # Check if cached news is mock data - if so, don't use cache
             articles = self.parse_stored_news(cached_news)
-            return articles, False
+            if articles and any("(Mock)" in article.source for article in articles):
+                logger.info(f"Cached news for {symbol} is mock data - fetching fresh")
+            else:
+                logger.info(f"Using cached news for {symbol}")
+                return articles, False
         
-        # Cache is stale or missing, fetch fresh news
+        # Cache is stale, missing, or contains mock data - fetch fresh news
         logger.info(f"Fetching fresh news for {symbol}")
         articles = self.get_ticker_news(symbol, self.max_articles_per_symbol)
         return articles, True

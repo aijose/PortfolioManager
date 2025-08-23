@@ -340,11 +340,13 @@ async def get_item_news(watchlist_id: int, symbol: str, db: Session = Depends(ge
         watched_item.news_data
     )
     
-    # Update cache if we fetched fresh news
+    # Update cache if we fetched fresh news (but don't cache mock data)
     if was_fetched and articles:
-        watched_item.news_data = news_controller.format_news_for_storage(articles)
-        watched_item.last_news_update = datetime.now(timezone.utc)
-        db.commit()
+        # Only cache if it's not mock data
+        if not any("(Mock)" in article.source for article in articles):
+            watched_item.news_data = news_controller.format_news_for_storage(articles)
+            watched_item.last_news_update = datetime.now(timezone.utc)
+            db.commit()
     
     return {
         "symbol": symbol,
@@ -373,11 +375,13 @@ async def refresh_item_news(watchlist_id: int, symbol: str, db: Session = Depend
     # Force fetch fresh news
     articles = news_controller.get_ticker_news(symbol)
     
-    # Update cache
+    # Update cache (but don't cache mock data)
     if articles:
-        watched_item.news_data = news_controller.format_news_for_storage(articles)
-        watched_item.last_news_update = datetime.now(timezone.utc)
-        db.commit()
+        # Only cache if it's not mock data
+        if not any("(Mock)" in article.source for article in articles):
+            watched_item.news_data = news_controller.format_news_for_storage(articles)
+            watched_item.last_news_update = datetime.now(timezone.utc)
+            db.commit()
         
         return {
             "symbol": symbol,
@@ -430,6 +434,42 @@ async def test_news_endpoint(watchlist_id: int, symbol: str, db: Session = Depen
         "has_news_data": watched_item.news_data is not None,
         "last_news_update": watched_item.last_news_update.isoformat() if watched_item.last_news_update else None,
         "test": True
+    }
+
+
+@router.post("/{watchlist_id}/clear-mock-news")
+async def clear_mock_news_cache(watchlist_id: int, db: Session = Depends(get_db)):
+    """Clear cached mock news data for all items in a watchlist."""
+    # Find all watched items in the watchlist
+    watched_items = db.query(WatchedItem).filter(
+        WatchedItem.watchlist_id == watchlist_id
+    ).all()
+    
+    cleared_count = 0
+    
+    for watched_item in watched_items:
+        # Check if the item has cached mock news
+        if watched_item.news_data and watched_item.news_data.get('articles'):
+            articles_data = watched_item.news_data.get('articles', [])
+            has_mock_news = any(
+                article.get('source', '').endswith('(Mock)') 
+                for article in articles_data
+            )
+            
+            if has_mock_news:
+                # Clear the cached mock news
+                watched_item.news_data = None
+                watched_item.last_news_update = None
+                cleared_count += 1
+    
+    if cleared_count > 0:
+        db.commit()
+    
+    return {
+        "success": True,
+        "cleared_count": cleared_count,
+        "total_items": len(watched_items),
+        "message": f"Cleared mock news cache for {cleared_count} items"
     }
 
 
