@@ -463,3 +463,10 @@ class StockDataController:
         change = current_price - previous_price
         change_percent = (change / previous_price) * 100
         return change, change_percent
+    
+    def validate_symbol(self, symbol: str) -> bool:
+        """Validate a single symbol (convenience method)."""
+        if not symbol:
+            return False
+        results = self.validate_symbols([symbol])
+        return results.get(symbol, False)
